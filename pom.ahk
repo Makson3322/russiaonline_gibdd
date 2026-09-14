@@ -18,6 +18,8 @@ global CurrentVersion := "3.6"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
+global UpdateCheckBusy := false
+global UpdateCheckFailed := false
 
 IniFile := A_ScriptDir . "\config_gibdd.ini"
 IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, NONE
@@ -31,35 +33,153 @@ BuildSelectorGui()
 
 ShowSettingsGui(CurrentHotkey)
 
-SetTimer, CheckUpdateFast, -80
+SetTimer, CheckUpdateFast, -100
+SetTimer, CheckUpdatePeriodic, 600000
 return
-
-WM_LBUTTONDOWN() {
-    PostMessage, 0xA1, 2,,, A
-}
 
 CheckUpdateFast:
     CheckUpdate()
 return
 
+CheckUpdatePeriodic:
+    CheckUpdate()
+return
+
 CheckUpdate() {
-    global CurrentVersion, LatestVersion, UpdateAvailable
-    urlMain := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt"
-    urlMaster := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt"
-    ver := GetUrlFast(urlMain)
-    if (ver == "")
-        ver := GetUrlFast(urlMaster)
-    if (ver != "") {
-        ver := Trim(ver)
-        ver := RegExReplace(ver, "[\r\n\t ]+", "")
-        if (IsNewer(ver, CurrentVersion)) {
-            UpdateAvailable := true
-            LatestVersion := ver
-            ApplyUpdateUI()
+    global CurrentVersion, LatestVersion, UpdateAvailable, UpdateCheckBusy, UpdateCheckFailed
+
+    if (UpdateCheckBusy)
+        return
+
+    UpdateCheckBusy := true
+    UpdateCheckFailed := false
+
+    urls := []
+    urls.Push("https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt")
+    urls.Push("https://cdn.jsdelivr.net/gh/Makson3322/russiaonline_gibdd@main/version.txt")
+    urls.Push("https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt")
+
+    ver := ""
+    for idx, url in urls {
+        ver := GetUrlFast(url)
+        if (ver != "")
+            break
+    }
+
+    if (ver == "") {
+        UpdateCheckFailed := true
+        UpdateCheckBusy := false
+        UpdateStatusLabel("Не удалось проверить GitHub")
+        return
+    }
+
+    ver := NormalizeVersion(ver)
+
+    if (!IsValidVersion(ver)) {
+        UpdateCheckFailed := true
+        UpdateCheckBusy := false
+        UpdateStatusLabel("GitHub вернул некорректную версию")
+        return
+    }
+
+    LatestVersion := ver
+
+    if (IsNewer(ver, CurrentVersion)) {
+        UpdateAvailable := true
+        ApplyUpdateUI()
+        UpdateStatusLabel("Найдено обновление: V" . LatestVersion)
+    } else {
+        UpdateAvailable := false
+        HideUpdateUI()
+        UpdateStatusLabel("✓ Версия V" . CurrentVersion . " актуальна")
+    }
+
+    UpdateCheckBusy := false
+}
+
+NormalizeVersion(value) {
+    value := Trim(value)
+    value := RegExReplace(value, "^\x{FEFF}", "")
+    value := RegExReplace(value, "[\r\n\t ]+", "")
+    value := RegExReplace(value, "^v", "", 1)
+    return Trim(value)
+}
+
+IsValidVersion(value) {
+    return RegExMatch(value, "^\d+(?:\.\d+)*$")
+}
+
+IsNewer(vRemote, vLocal) {
+    vRemote := NormalizeVersion(vRemote)
+    vLocal := NormalizeVersion(vLocal)
+
+    if (!IsValidVersion(vRemote) || !IsValidVersion(vLocal))
+        return false
+
+    aR := StrSplit(vRemote, ".")
+    aL := StrSplit(vLocal, ".")
+    m := aR.Length() > aL.Length() ? aR.Length() : aL.Length()
+
+    Loop, %m%
+    {
+        r := (A_Index <= aR.Length()) ? aR[A_Index] + 0 : 0
+        l := (A_Index <= aL.Length()) ? aL[A_Index] + 0 : 0
+
+        if (r > l)
+            return true
+        if (r < l)
+            return false
+    }
+
+    return false
+}
+
+GetUrlFast(url) {
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.Option(6) := true
+        whr.Option(9) := 2048
+        whr.SetTimeouts(1200, 1200, 1800, 1800)
+        whr.Open("GET", url . "?t=" . A_TickCount, false)
+        whr.SetRequestHeader("User-Agent", "RussiaOnline-GIBDD/3.6")
+        whr.SetRequestHeader("Accept", "text/plain")
+        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        whr.SetRequestHeader("Pragma", "no-cache")
+        whr.Send()
+
+        if (whr.Status == 200)
+            return whr.ResponseText
+    } catch e {
+    }
+
+    return ""
+}
+
+UpdateStatusLabel(text) {
+    try GuiControl, Settings:, CheckStatusLabel, %text%
+}
+
+HideUpdateUI() {
+    try GuiControl, Overlay:Hide, UpdateNoticeBtn
+    try GuiControl, Selector:Hide, UpdateSelectorBtn
+    try GuiControl, Settings:Hide, UpdateSettingsBtn
+}
+
+ApplyUpdateUI()
             ShowUpdateModal()
         }
     }
 }
+
+ManualCheckUpdate:
+    GuiControl, Settings:, CheckStatusLabel, Проверка обновлений...
+    CheckUpdate()
+    if (UpdateAvailable) {
+        GuiControl, Settings:, CheckStatusLabel, Найдена версия V%LatestVersion%!
+    } else {
+        GuiControl, Settings:, CheckStatusLabel, У вас актуальная версия (V%CurrentVersion%)
+    }
+return
 
 IsNewer(vRemote, vLocal) {
     aR := StrSplit(vRemote, ".")
@@ -80,12 +200,12 @@ IsNewer(vRemote, vLocal) {
 GetUrlFast(url) {
     try {
         whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.Option(9) := 2048
-        whr.SetTimeouts(600, 600, 800, 800)
-        whr.Open("GET", url . "?t=" . A_TickCount, false)
-        whr.SetRequestHeader("User-Agent", "Mozilla/5.0")
-        whr.SetRequestHeader("Cache-Control", "no-cache")
+        whr.SetTimeouts(3000, 3000, 3000, 4000)
+        whr.Open("GET", url . "?nocache=" . A_TickCount, false)
+        whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
         whr.SetRequestHeader("Pragma", "no-cache")
+        whr.SetRequestHeader("Expires", "0")
         whr.Send()
         if (whr.Status == 200)
             return whr.ResponseText
@@ -169,10 +289,11 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Add, Hotkey, x80 y154 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
     
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Settings:Add, Button, x80 y198 w280 h36 gSaveAndStart, %btnText%
+    Gui, Settings:Add, Button, x80 y198 w200 h36 gSaveAndStart, %btnText%
+    Gui, Settings:Add, Button, x290 y198 w70 h36 gManualCheckUpdate, 🔄 Обн.
     
     Gui, Settings:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y244 w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
+    Gui, Settings:Add, Text, x20 y244 w400 Center vCheckStatusLabel, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
     
     if (UpdateAvailable) {
         GuiControl, Settings:Show, UpdateSettingsBtn
@@ -241,15 +362,15 @@ BuildSelectorGui() {
     Gui, Selector:Add, Button, x30 y268 w175 h34 gChoosePolice, ФЗ О Полиции
     Gui, Selector:Add, Button, x215 y268 w175 h34 gChooseUstav, Устав ГИБДД
     
-    Gui, Selector:Add, Button, x30 y308 w85 h34 gShowMiranda, ⚖ Права
-    Gui, Selector:Add, Button, x122 y308 w85 h34 gShowMegaphone, 📢 Рупор
-    Gui, Selector:Add, Button, x214 y308 w85 h34 gShowBailCalc, 💰 Залог
-    Gui, Selector:Add, Button, x305 y308 w85 h34 gShowRPBinder, 🚔 РП
+    Gui, Selector:Add, Button, x30 y310 w85 h34 gShowMiranda, ⚖ Права
+    Gui, Selector:Add, Button, x122 y310 w85 h34 gShowMegaphone, 📢 Рупор
+    Gui, Selector:Add, Button, x214 y310 w85 h34 gShowBailCalc, 💰 Залог
+    Gui, Selector:Add, Button, x305 y310 w85 h34 gShowRPBinder, 🚔 РП
     
-    Gui, Selector:Add, Button, x30 y348 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
+    Gui, Selector:Add, Button, x30 y350 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
     
     Gui, Selector:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y388 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
+    Gui, Selector:Add, Text, x20 y390 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
 }
 
 ToggleSelectionMenu:
