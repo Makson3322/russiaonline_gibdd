@@ -165,53 +165,6 @@ HideUpdateUI() {
     try GuiControl, Settings:Hide, UpdateSettingsBtn
 }
 
-ApplyUpdateUI()
-            ShowUpdateModal()
-        }
-    }
-}
-
-ManualCheckUpdate:
-    GuiControl, Settings:, CheckStatusLabel, Проверка обновлений...
-    CheckUpdate()
-    if (UpdateAvailable) {
-        GuiControl, Settings:, CheckStatusLabel, Найдена версия V%LatestVersion%!
-    } else {
-        GuiControl, Settings:, CheckStatusLabel, У вас актуальная версия (V%CurrentVersion%)
-    }
-return
-
-IsNewer(vRemote, vLocal) {
-    aR := StrSplit(vRemote, ".")
-    aL := StrSplit(vLocal, ".")
-    m := aR.Length() > aL.Length() ? aR.Length() : aL.Length()
-    Loop, %m%
-    {
-        r := (aR[A_Index] != "") ? aR[A_Index] + 0 : 0
-        l := (aL[A_Index] != "") ? aL[A_Index] + 0 : 0
-        if (r > l)
-            return true
-        if (r < l)
-            return false
-    }
-    return false
-}
-
-GetUrlFast(url) {
-    try {
-        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(3000, 3000, 3000, 4000)
-        whr.Open("GET", url . "?nocache=" . A_TickCount, false)
-        whr.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-        whr.SetRequestHeader("Pragma", "no-cache")
-        whr.SetRequestHeader("Expires", "0")
-        whr.Send()
-        if (whr.Status == 200)
-            return whr.ResponseText
-    }
-    return ""
-}
 
 ApplyUpdateUI() {
     global LatestVersion
@@ -222,6 +175,11 @@ ApplyUpdateUI() {
     GuiControl, Settings:Show, UpdateSettingsBtn
     GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
 }
+
+ManualCheckUpdate:
+    UpdateStatusLabel("Проверка обновлений...")
+    SetTimer, CheckUpdateFast, -10
+return
 
 ShowUpdateModal() {
     global LatestVersion, CurrentVersion, RepoURL, UpdateModalVisible, hUpdateGui
