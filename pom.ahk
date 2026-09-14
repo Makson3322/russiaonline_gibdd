@@ -14,10 +14,15 @@ if not A_IsAdmin
     ExitApp
 }
 
-global CurrentVersion := "3.1"
+global CurrentVersion := "3.2"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
+
+LatestVersion := CheckVersionNow()
+if (LatestVersion != "" && LatestVersion != CurrentVersion) {
+    UpdateAvailable := true
+}
 
 IniFile := A_ScriptDir . "\config_gibdd.ini"
 IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, NONE
@@ -29,8 +34,6 @@ OnMessage(0x0201, "WM_LBUTTONDOWN")
 BuildOverlay()
 BuildSelectorGui()
 
-SetTimer, CheckUpdateTimer, -300
-
 ShowSettingsGui(CurrentHotkey)
 return
 
@@ -38,91 +41,27 @@ WM_LBUTTONDOWN() {
     PostMessage, 0xA1, 2,,, A
 }
 
-CheckUpdateTimer:
-    CheckUpdate()
-return
-
-CheckUpdate() {
-    global CurrentVersion, LatestVersion, UpdateAvailable
-    urlMain := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt"
-    urlMaster := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt"
-    ver := GetUrlText(urlMain)
-    if (ver == "")
-        ver := GetUrlText(urlMaster)
-    if (ver != "") {
-        ver := Trim(ver)
-        ver := RegExReplace(ver, "[\r\n\t ]+", "")
-        if (ver != "" && ver != CurrentVersion) {
-            UpdateAvailable := true
-            LatestVersion := ver
-            ApplyUpdateUI()
-            ShowUpdateModal()
+CheckVersionNow() {
+    tmpFile := A_Temp . "\gibdd_ver_" . A_TickCount . ".txt"
+    psCmd := "powershell -NoProfile -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt' -UseBasicParsing -TimeoutSec 3).Content | Out-File -FilePath '" . tmpFile . "' -Encoding ascii"""
+    RunWait, %psCmd%,, Hide
+    ver := ""
+    if FileExist(tmpFile) {
+        FileRead, ver, %tmpFile%
+        FileDelete, %tmpFile%
+    }
+    if (ver == "") {
+        psCmdMaster := "powershell -NoProfile -Command ""[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt' -UseBasicParsing -TimeoutSec 3).Content | Out-File -FilePath '" . tmpFile . "' -Encoding ascii"""
+        RunWait, %psCmdMaster%,, Hide
+        if FileExist(tmpFile) {
+            FileRead, ver, %tmpFile%
+            FileDelete, %tmpFile%
         }
     }
+    ver := Trim(ver)
+    ver := RegExReplace(ver, "[\r\n\t ]+", "")
+    return ver
 }
-
-ApplyUpdateUI() {
-    global LatestVersion
-    GuiControl, Overlay:Show, UpdateNoticeBtn
-    GuiControl, Overlay:, UpdateNoticeBtn, 🚀 ОБНОВИТЬ ДО V%LatestVersion%
-    GuiControl, Selector:Show, UpdateSelectorBtn
-    GuiControl, Selector:, UpdateSelectorBtn, 🚀 Доступна новая версия: V%LatestVersion%!
-    GuiControl, Settings:Show, UpdateSettingsBtn
-    GuiControl, Settings:, UpdateSettingsBtn, 🚀 Найдено обновление V%LatestVersion%! Скачать
-}
-
-GetUrlText(url) {
-    try {
-        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(2000, 2000, 3000, 3000)
-        whr.Open("GET", url . "?nocache=" . A_TickCount, false)
-        whr.SetRequestHeader("User-Agent", "Mozilla/5.0")
-        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-        whr.SetRequestHeader("Pragma", "no-cache")
-        whr.Send()
-        if (whr.Status == 200)
-            return whr.ResponseText
-    }
-    return ""
-}
-
-ShowUpdateModal() {
-    global LatestVersion, CurrentVersion, RepoURL, UpdateModalVisible, hUpdateGui
-    UpdateModalVisible := true
-    Gui, UpdateModal:Destroy
-    Gui, UpdateModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhUpdateGui
-    Gui, UpdateModal:Color, 121316, 1E1F23
-    
-    Gui, UpdateModal:Font, s13 c57F287 Bold, Segoe UI
-    Gui, UpdateModal:Add, Text, x20 y16 w480 Center, ДОСТУПНО ОБНОВЛЕНИЕ СКРИПТА!
-    
-    Gui, UpdateModal:Font, s10 cDCDDDE Normal, Segoe UI
-    uMsg := "В репозитории GitHub вышла новая версия: V" . LatestVersion . "`r`n`r`n"
-          . "Текущая установленная версия: V" . CurrentVersion . "`r`n"
-          . "Рекомендуется обновить скрипт для актуализации статей и функций.`r`n"
-          . "Нажмите кнопку ниже, чтобы перейти в репозиторий проекта."
-    Gui, UpdateModal:Add, Text, x25 y50 w470 h90 Center, %uMsg%
-    
-    Gui, UpdateModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, UpdateModal:Add, Button, x40 y150 w240 h38 gOpenRepoUrl, 🚀 Открыть GitHub репозиторий
-    Gui, UpdateModal:Add, Button, x290 y150 w190 h38 gCloseUpdateModal, Напомнить позже
-    
-    Gui, UpdateModal:Show, w520 h215 Center, GIBDD_Update
-    WinActivate, ahk_id %hUpdateGui%
-    DllCall("SetForegroundWindow", "Ptr", hUpdateGui)
-    DllCall("SetWindowPos", "Ptr", hUpdateGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
-}
-
-OpenRepoUrl:
-    Run https://github.com/Makson3322/russiaonline_gibdd
-    Gui, UpdateModal:Hide
-    UpdateModalVisible := false
-return
-
-CloseUpdateModal:
-    Gui, UpdateModal:Hide
-    UpdateModalVisible := false
-return
 
 ShowSettingsGui(savedKey) {
     global
@@ -131,38 +70,44 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Color, 121316, 1E1F23
     
     Gui, Settings:Font, s13 c5865F2 Bold, Segoe UI
-    Gui, Settings:Add, Text, x20 y16 w400 Center, ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
+    Gui, Settings:Add, Text, x20 y18 w400 Center, ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
     
     Gui, Settings:Font, s9 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y42 w400 Center, [ СИСТЕМА ЗАКОНОДАТЕЛЬСТВА РОССИЯ ОНЛАЙН ]
+    Gui, Settings:Add, Text, x20 y44 w400 Center, [ СИСТЕМА ЗАКОНОДАТЕЛЬСТВА РОССИЯ ОНЛАЙН ]
     
-    Gui, Settings:Font, s9 c57F287 Bold, Segoe UI
-    Gui, Settings:Add, Button, x40 y68 w360 h28 vUpdateSettingsBtn gOpenRepoUrl +Hidden, 🚀 Найдено обновление! Нажмите для перехода
+    startY := 72
+    guiH := 240
+    
+    if (UpdateAvailable) {
+        Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
+        Gui, Settings:Add, Button, x30 y68 w380 h36 gOpenRepoUrl, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! (СКАЧАТЬ)
+        startY := 112
+        guiH := 280
+    }
     
     Gui, Settings:Font, s10 cDCDDDE Normal, Segoe UI
     if (savedKey == "NONE" || savedKey == "") {
-        Gui, Settings:Add, Text, x20 y104 w400 Center, Назначьте клавишу для открытия оверлея:
+        Gui, Settings:Add, Text, x20 y%startY% w400 Center, Назначьте клавишу для открытия оверлея:
         btnText := "Сохранить и запустить"
     } else {
-        Gui, Settings:Add, Text, x20 y104 w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
+        Gui, Settings:Add, Text, x20 y%startY% w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
         btnText := "Запустить биндер"
     }
     
+    hkY := startY + 46
+    btnY := hkY + 44
+    footY := btnY + 46
+    
     Gui, Settings:Font, s11 c2B2D31 Bold, Segoe UI
-    Gui, Settings:Add, Hotkey, x80 y150 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
+    Gui, Settings:Add, Hotkey, x80 y%hkY% w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
     
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Settings:Add, Button, x80 y194 w280 h36 gSaveAndStart, %btnText%
+    Gui, Settings:Add, Button, x80 y%btnY% w280 h36 gSaveAndStart, %btnText%
     
     Gui, Settings:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y240 w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
+    Gui, Settings:Add, Text, x20 y%footY% w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
     
-    if (UpdateAvailable) {
-        GuiControl, Settings:Show, UpdateSettingsBtn
-        GuiControl, Settings:, UpdateSettingsBtn, 🚀 Найдено обновление V%LatestVersion%! Скачать
-    }
-    
-    Gui, Settings:Show, w440 h270, Настройка биндера ГИБДД
+    Gui, Settings:Show, w440 h%guiH%, Настройка биндера ГИБДД
 }
 
 SaveAndStart:
@@ -185,9 +130,6 @@ SaveAndStart:
     TrayTip, ДПС ГИБДД Памятка, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
     BuildOverlay()
     BuildSelectorGui()
-    if (UpdateAvailable) {
-        ApplyUpdateUI()
-    }
 return
 
 SettingsGuiClose:
@@ -207,42 +149,56 @@ BuildSelectorGui() {
     Gui, Selector:Font, s9 c949BA4 Normal, Segoe UI
     Gui, Selector:Add, Text, x20 y42 w380 Center, Выберите нужный раздел для открытия:
     
-    Gui, Selector:Font, s9 c57F287 Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y68 w360 h28 vUpdateSelectorBtn gOpenRepoUrl +Hidden, 🚀 Найдено обновление на GitHub!
+    sY := 72
+    sH := 385
+    if (UpdateAvailable) {
+        Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
+        Gui, Selector:Add, Button, x30 y70 w360 h34 gOpenRepoUrl, 🚀 СКАЧАТЬ ОБНОВЛЕНИЕ V%LatestVersion%
+        sY := 110
+        sH := 425
+    }
+    
+    b2 := sY + 42
+    b3 := b2 + 44
+    b4 := b3 + 40
+    b5 := b4 + 40
+    b6 := b5 + 40
+    b7 := b6 + 40
+    b8 := b7 + 38
     
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y102 w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
-    Gui, Selector:Add, Button, x30 y144 w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
+    Gui, Selector:Add, Button, x30 y%sY% w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
+    Gui, Selector:Add, Button, x30 y%b2% w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
     
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y188 w175 h34 gChooseKoAP, КоАП РО (по порядку)
-    Gui, Selector:Add, Button, x215 y188 w175 h34 gChooseUK, УК РО (по порядку)
+    Gui, Selector:Add, Button, x30 y%b3% w175 h34 gChooseKoAP, КоАП РО (по порядку)
+    Gui, Selector:Add, Button, x215 y%b3% w175 h34 gChooseUK, УК РО (по порядку)
     
-    Gui, Selector:Add, Button, x30 y228 w175 h34 gChooseProc, Процессуальный кодекс
-    Gui, Selector:Add, Button, x215 y228 w175 h34 gChoosePDD, ПДД РО
+    Gui, Selector:Add, Button, x30 y%b4% w175 h34 gChooseProc, Процессуальный кодекс
+    Gui, Selector:Add, Button, x215 y%b4% w175 h34 gChoosePDD, ПДД РО
     
-    Gui, Selector:Add, Button, x30 y268 w175 h34 gChoosePolice, ФЗ О Полиции
-    Gui, Selector:Add, Button, x215 y268 w175 h34 gChooseUstav, Устав ГИБДД
+    Gui, Selector:Add, Button, x30 y%b5% w175 h34 gChoosePolice, ФЗ О Полиции
+    Gui, Selector:Add, Button, x215 y%b5% w175 h34 gChooseUstav, Устав ГИБДД
     
-    Gui, Selector:Add, Button, x30 y308 w115 h34 gShowMiranda, ⚖ Миранда
-    Gui, Selector:Add, Button, x152 y308 w115 h34 gShowMegaphone, 📢 Мегафон
-    Gui, Selector:Add, Button, x275 y308 w115 h34 gShowBailCalc, 💰 Залог
+    Gui, Selector:Add, Button, x30 y%b6% w115 h34 gShowMiranda, ⚖ Миранда
+    Gui, Selector:Add, Button, x152 y%b6% w115 h34 gShowMegaphone, 📢 Мегафон
+    Gui, Selector:Add, Button, x275 y%b6% w115 h34 gShowBailCalc, 💰 Залог
     
-    Gui, Selector:Add, Button, x30 y348 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
+    Gui, Selector:Add, Button, x30 y%b7% w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
     
     Gui, Selector:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y388 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
+    Gui, Selector:Add, Text, x20 y%b8% w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
 }
 
 ToggleSelectionMenu:
-    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || UpdateModalVisible) {
+    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible) {
         CloseAllWindows()
         return
     }
     
     PrevGameHwnd := WinActive("A")
     SelectorVisible := true
-    Gui, Selector:Show, w420 h415 Center, GIBDD_Selector
+    Gui, Selector:Show, Center, GIBDD_Selector
     WinActivate, ahk_id %hSelectorGui%
     DllCall("SetForegroundWindow", "Ptr", hSelectorGui)
     DllCall("SetWindowPos", "Ptr", hSelectorGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
@@ -326,14 +282,12 @@ CloseAllWindows() {
     MirandaVisible := false
     MegaphoneVisible := false
     BailVisible := false
-    UpdateModalVisible := false
     Gui, Overlay:Hide
     Gui, Selector:Hide
     Gui, RulesModal:Hide
     Gui, MirandaModal:Hide
     Gui, MegaphoneModal:Hide
     Gui, BailModal:Hide
-    Gui, UpdateModal:Hide
     if (PrevGameHwnd) {
         WinActivate, ahk_id %PrevGameHwnd%
     }
@@ -383,11 +337,9 @@ Escape::
 return
 #IfWinExist
 
-#IfWinExist, GIBDD_Update
-Escape::
-    CloseAllWindows()
+OpenRepoUrl:
+    Run https://github.com/Makson3322/russiaonline_gibdd
 return
-#IfWinExist
 
 BuildOverlay() {
     global
@@ -400,10 +352,12 @@ BuildOverlay() {
     WinSet, Transparent, 248
     
     Gui, Overlay:Font, s12 c5865F2 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x25 y14 w310, ДПС ГИБДД КУТУЗОВСКИЙ
+    Gui, Overlay:Add, Text, x25 y14 w260, ДПС ГИБДД КУТУЗОВСКИЙ
     
-    Gui, Overlay:Font, s9 c57F287 Bold, Segoe UI
-    Gui, Overlay:Add, Button, x340 y12 w250 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
+    if (UpdateAvailable) {
+        Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
+        Gui, Overlay:Add, Button, x290 y12 w320 h28 gOpenRepoUrl, 🚀 ОБНОВИТЬ СКРИПТ ДО V%LatestVersion%
+    }
     
     Gui, Overlay:Font, s9 c949BA4 Normal, Segoe UI
     Gui, Overlay:Add, Text, x620 y16 w395 Right, Закрыть: [%CurrentHotkey%] / [ESC] | Двойной клик / Enter: копия
