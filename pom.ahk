@@ -14,12 +14,22 @@ if not A_IsAdmin
     ExitApp
 }
 
+global CurrentVersion := "3.1"
+global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
+global UpdateAvailable := false
+global LatestVersion := ""
+
 IniFile := A_ScriptDir . "\config_gibdd.ini"
 IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, NONE
 
 InitDatabase()
 
 OnMessage(0x0201, "WM_LBUTTONDOWN")
+
+BuildOverlay()
+BuildSelectorGui()
+
+SetTimer, CheckUpdateTimer, -300
 
 ShowSettingsGui(CurrentHotkey)
 return
@@ -28,6 +38,92 @@ WM_LBUTTONDOWN() {
     PostMessage, 0xA1, 2,,, A
 }
 
+CheckUpdateTimer:
+    CheckUpdate()
+return
+
+CheckUpdate() {
+    global CurrentVersion, LatestVersion, UpdateAvailable
+    urlMain := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt"
+    urlMaster := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt"
+    ver := GetUrlText(urlMain)
+    if (ver == "")
+        ver := GetUrlText(urlMaster)
+    if (ver != "") {
+        ver := Trim(ver)
+        ver := RegExReplace(ver, "[\r\n\t ]+", "")
+        if (ver != "" && ver != CurrentVersion) {
+            UpdateAvailable := true
+            LatestVersion := ver
+            ApplyUpdateUI()
+            ShowUpdateModal()
+        }
+    }
+}
+
+ApplyUpdateUI() {
+    global LatestVersion
+    GuiControl, Overlay:Show, UpdateNoticeBtn
+    GuiControl, Overlay:, UpdateNoticeBtn, 🚀 ОБНОВИТЬ ДО V%LatestVersion%
+    GuiControl, Selector:Show, UpdateSelectorBtn
+    GuiControl, Selector:, UpdateSelectorBtn, 🚀 Доступна новая версия: V%LatestVersion%!
+    GuiControl, Settings:Show, UpdateSettingsBtn
+    GuiControl, Settings:, UpdateSettingsBtn, 🚀 Найдено обновление V%LatestVersion%! Скачать
+}
+
+GetUrlText(url) {
+    try {
+        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(2000, 2000, 3000, 3000)
+        whr.Open("GET", url . "?nocache=" . A_TickCount, false)
+        whr.SetRequestHeader("User-Agent", "Mozilla/5.0")
+        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+        whr.SetRequestHeader("Pragma", "no-cache")
+        whr.Send()
+        if (whr.Status == 200)
+            return whr.ResponseText
+    }
+    return ""
+}
+
+ShowUpdateModal() {
+    global LatestVersion, CurrentVersion, RepoURL, UpdateModalVisible, hUpdateGui
+    UpdateModalVisible := true
+    Gui, UpdateModal:Destroy
+    Gui, UpdateModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhUpdateGui
+    Gui, UpdateModal:Color, 121316, 1E1F23
+    
+    Gui, UpdateModal:Font, s13 c57F287 Bold, Segoe UI
+    Gui, UpdateModal:Add, Text, x20 y16 w480 Center, ДОСТУПНО ОБНОВЛЕНИЕ СКРИПТА!
+    
+    Gui, UpdateModal:Font, s10 cDCDDDE Normal, Segoe UI
+    uMsg := "В репозитории GitHub вышла новая версия: V" . LatestVersion . "`r`n`r`n"
+          . "Текущая установленная версия: V" . CurrentVersion . "`r`n"
+          . "Рекомендуется обновить скрипт для актуализации статей и функций.`r`n"
+          . "Нажмите кнопку ниже, чтобы перейти в репозиторий проекта."
+    Gui, UpdateModal:Add, Text, x25 y50 w470 h90 Center, %uMsg%
+    
+    Gui, UpdateModal:Font, s10 cFFFFFF Bold, Segoe UI
+    Gui, UpdateModal:Add, Button, x40 y150 w240 h38 gOpenRepoUrl, 🚀 Открыть GitHub репозиторий
+    Gui, UpdateModal:Add, Button, x290 y150 w190 h38 gCloseUpdateModal, Напомнить позже
+    
+    Gui, UpdateModal:Show, w520 h215 Center, GIBDD_Update
+    WinActivate, ahk_id %hUpdateGui%
+    DllCall("SetForegroundWindow", "Ptr", hUpdateGui)
+    DllCall("SetWindowPos", "Ptr", hUpdateGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+}
+
+OpenRepoUrl:
+    Run https://github.com/Makson3322/russiaonline_gibdd
+    Gui, UpdateModal:Hide
+    UpdateModalVisible := false
+return
+
+CloseUpdateModal:
+    Gui, UpdateModal:Hide
+    UpdateModalVisible := false
+return
+
 ShowSettingsGui(savedKey) {
     global
     Gui, Settings:Destroy
@@ -35,30 +131,38 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Color, 121316, 1E1F23
     
     Gui, Settings:Font, s13 c5865F2 Bold, Segoe UI
-    Gui, Settings:Add, Text, x20 y18 w400 Center, ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
+    Gui, Settings:Add, Text, x20 y16 w400 Center, ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
     
     Gui, Settings:Font, s9 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y44 w400 Center, [ СИСТЕМА ЗАКОНОДАТЕЛЬСТВА РОССИЯ ОНЛАЙН ]
+    Gui, Settings:Add, Text, x20 y42 w400 Center, [ СИСТЕМА ЗАКОНОДАТЕЛЬСТВА РОССИЯ ОНЛАЙН ]
+    
+    Gui, Settings:Font, s9 c57F287 Bold, Segoe UI
+    Gui, Settings:Add, Button, x40 y68 w360 h28 vUpdateSettingsBtn gOpenRepoUrl +Hidden, 🚀 Найдено обновление! Нажмите для перехода
     
     Gui, Settings:Font, s10 cDCDDDE Normal, Segoe UI
     if (savedKey == "NONE" || savedKey == "") {
-        Gui, Settings:Add, Text, x20 y72 w400 Center, Назначьте клавишу для открытия оверлея:
+        Gui, Settings:Add, Text, x20 y104 w400 Center, Назначьте клавишу для открытия оверлея:
         btnText := "Сохранить и запустить"
     } else {
-        Gui, Settings:Add, Text, x20 y72 w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
+        Gui, Settings:Add, Text, x20 y104 w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
         btnText := "Запустить биндер"
     }
     
     Gui, Settings:Font, s11 c2B2D31 Bold, Segoe UI
-    Gui, Settings:Add, Hotkey, x80 y120 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
+    Gui, Settings:Add, Hotkey, x80 y150 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
     
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Settings:Add, Button, x80 y165 w280 h36 gSaveAndStart, %btnText%
+    Gui, Settings:Add, Button, x80 y194 w280 h36 gSaveAndStart, %btnText%
     
     Gui, Settings:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y212 w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
+    Gui, Settings:Add, Text, x20 y240 w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
     
-    Gui, Settings:Show, w440 h240, Настройка биндера ГИБДД
+    if (UpdateAvailable) {
+        GuiControl, Settings:Show, UpdateSettingsBtn
+        GuiControl, Settings:, UpdateSettingsBtn, 🚀 Найдено обновление V%LatestVersion%! Скачать
+    }
+    
+    Gui, Settings:Show, w440 h270, Настройка биндера ГИБДД
 }
 
 SaveAndStart:
@@ -81,6 +185,9 @@ SaveAndStart:
     TrayTip, ДПС ГИБДД Памятка, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
     BuildOverlay()
     BuildSelectorGui()
+    if (UpdateAvailable) {
+        ApplyUpdateUI()
+    }
 return
 
 SettingsGuiClose:
@@ -100,39 +207,42 @@ BuildSelectorGui() {
     Gui, Selector:Font, s9 c949BA4 Normal, Segoe UI
     Gui, Selector:Add, Text, x20 y42 w380 Center, Выберите нужный раздел для открытия:
     
+    Gui, Selector:Font, s9 c57F287 Bold, Segoe UI
+    Gui, Selector:Add, Button, x30 y68 w360 h28 vUpdateSelectorBtn gOpenRepoUrl +Hidden, 🚀 Найдено обновление на GitHub!
+    
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y72 w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
-    Gui, Selector:Add, Button, x30 y114 w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
+    Gui, Selector:Add, Button, x30 y102 w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
+    Gui, Selector:Add, Button, x30 y144 w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
     
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y158 w175 h34 gChooseKoAP, КоАП РО (по порядку)
-    Gui, Selector:Add, Button, x215 y158 w175 h34 gChooseUK, УК РО (по порядку)
+    Gui, Selector:Add, Button, x30 y188 w175 h34 gChooseKoAP, КоАП РО (по порядку)
+    Gui, Selector:Add, Button, x215 y188 w175 h34 gChooseUK, УК РО (по порядку)
     
-    Gui, Selector:Add, Button, x30 y198 w175 h34 gChooseProc, Процессуальный кодекс
-    Gui, Selector:Add, Button, x215 y198 w175 h34 gChoosePDD, ПДД РО
+    Gui, Selector:Add, Button, x30 y228 w175 h34 gChooseProc, Процессуальный кодекс
+    Gui, Selector:Add, Button, x215 y228 w175 h34 gChoosePDD, ПДД РО
     
-    Gui, Selector:Add, Button, x30 y238 w175 h34 gChoosePolice, ФЗ О Полиции
-    Gui, Selector:Add, Button, x215 y238 w175 h34 gChooseUstav, Устав ГИБДД
+    Gui, Selector:Add, Button, x30 y268 w175 h34 gChoosePolice, ФЗ О Полиции
+    Gui, Selector:Add, Button, x215 y268 w175 h34 gChooseUstav, Устав ГИБДД
     
-    Gui, Selector:Add, Button, x30 y278 w115 h34 gShowMiranda, ⚖ Миранда
-    Gui, Selector:Add, Button, x152 y278 w115 h34 gShowMegaphone, 📢 Мегафон
-    Gui, Selector:Add, Button, x275 y278 w115 h34 gShowBailCalc, 💰 Залог
+    Gui, Selector:Add, Button, x30 y308 w115 h34 gShowMiranda, ⚖ Миранда
+    Gui, Selector:Add, Button, x152 y308 w115 h34 gShowMegaphone, 📢 Мегафон
+    Gui, Selector:Add, Button, x275 y308 w115 h34 gShowBailCalc, 💰 Залог
     
-    Gui, Selector:Add, Button, x30 y318 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
+    Gui, Selector:Add, Button, x30 y348 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
     
     Gui, Selector:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y358 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
+    Gui, Selector:Add, Text, x20 y388 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
 }
 
 ToggleSelectionMenu:
-    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible) {
+    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || UpdateModalVisible) {
         CloseAllWindows()
         return
     }
     
     PrevGameHwnd := WinActive("A")
     SelectorVisible := true
-    Gui, Selector:Show, w420 h385 Center, GIBDD_Selector
+    Gui, Selector:Show, w420 h415 Center, GIBDD_Selector
     WinActivate, ahk_id %hSelectorGui%
     DllCall("SetForegroundWindow", "Ptr", hSelectorGui)
     DllCall("SetWindowPos", "Ptr", hSelectorGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
@@ -216,12 +326,14 @@ CloseAllWindows() {
     MirandaVisible := false
     MegaphoneVisible := false
     BailVisible := false
+    UpdateModalVisible := false
     Gui, Overlay:Hide
     Gui, Selector:Hide
     Gui, RulesModal:Hide
     Gui, MirandaModal:Hide
     Gui, MegaphoneModal:Hide
     Gui, BailModal:Hide
+    Gui, UpdateModal:Hide
     if (PrevGameHwnd) {
         WinActivate, ahk_id %PrevGameHwnd%
     }
@@ -271,6 +383,12 @@ Escape::
 return
 #IfWinExist
 
+#IfWinExist, GIBDD_Update
+Escape::
+    CloseAllWindows()
+return
+#IfWinExist
+
 BuildOverlay() {
     global
     Gui, Overlay:Destroy
@@ -282,7 +400,10 @@ BuildOverlay() {
     WinSet, Transparent, 248
     
     Gui, Overlay:Font, s12 c5865F2 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x25 y14 w440, ДПС ГИБДД КУТУЗОВСКИЙ
+    Gui, Overlay:Add, Text, x25 y14 w310, ДПС ГИБДД КУТУЗОВСКИЙ
+    
+    Gui, Overlay:Font, s9 c57F287 Bold, Segoe UI
+    Gui, Overlay:Add, Button, x340 y12 w250 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
     
     Gui, Overlay:Font, s9 c949BA4 Normal, Segoe UI
     Gui, Overlay:Add, Text, x620 y16 w395 Right, Закрыть: [%CurrentHotkey%] / [ESC] | Двойной клик / Enter: копия
@@ -1003,7 +1124,7 @@ InitDatabase() {
     (
 УК РО|Статья 15.6 (Ф/С) Халатность должностного лица с причинением крупного ущерба|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 15.7 (Ф/Р/С) Подкуп голосов избирателей во время выборов|до 10 месяцев лишения свободы (1 звезда)|0
-УК РО|Статья 15.8 (Ф/С) Неисполнение сотрудниками указов и нормативных актов Правительства/IB|до 40 месяцев с созданием записи о судимости (4 звезды)|0
+УК РО|Статья 15.8 (Ф/С) Неисполнение сотрудников указов и нормативных актов Правительства/IB|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 15.9 (Ф/С) Неисполнение руководством госструктур актов Премьер-министра|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 16.1 (Ф/С) Вмешательство в деятельность суда или следствия|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 16.1.2 (Ф/С) Воспрепятствование деятельности прокурора или следователя|до 40 месяцев с созданием записи о судимости (4 звезды)|0
