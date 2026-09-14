@@ -14,7 +14,7 @@ if not A_IsAdmin
     ExitApp
 }
 
-global CurrentVersion := "3.5"
+global CurrentVersion := "3.6"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
@@ -98,7 +98,7 @@ ApplyUpdateUI() {
     GuiControl, Overlay:Show, UpdateNoticeBtn
     GuiControl, Overlay:, UpdateNoticeBtn, 🚀 ОБНОВИТЬ ДО V%LatestVersion%
     GuiControl, Selector:Show, UpdateSelectorBtn
-    GuiControl, Selector:, UpdateSelectorBtn, 🚀 Доступно обновление: V%LatestVersion%!
+    GuiControl, Selector:, UpdateSelectorBtn, 🚀 Вышло обновление: V%LatestVersion%!
     GuiControl, Settings:Show, UpdateSettingsBtn
     GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
 }
@@ -108,17 +108,17 @@ ShowUpdateModal() {
     UpdateModalVisible := true
     Gui, UpdateModal:Destroy
     Gui, UpdateModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhUpdateGui
-    Gui, UpdateModal:Color, 121316, 1E1F23
+    Gui, UpdateModal:Color, 0F1012, 18191E
     
     Gui, UpdateModal:Font, s13 c57F287 Bold, Segoe UI
     Gui, UpdateModal:Add, Text, x20 y16 w480 Center, ВЫШЛО НОВОЕ ОБНОВЛЕНИЕ СКРИПТА!
     
     Gui, UpdateModal:Font, s10 cDCDDDE Normal, Segoe UI
-    uMsg := "В репозитории GitHub вышла более новая версия: V" . LatestVersion . "`r`n`r`n"
-          . "У вас установлена версия: V" . CurrentVersion . "`r`n"
-          . "Рекомендуется обновиться для получения актуальных законов и функций.`r`n"
+    uMsg := "В репозитории GitHub доступна более новая версия: V" . LatestVersion . "`r`n`r`n"
+          . "Текущая установленная версия: V" . CurrentVersion . "`r`n"
+          . "Рекомендуется обновиться для получения свежих статей и новых функций.`r`n"
           . "Нажмите кнопку ниже для перехода в репозиторий проекта."
-    Gui, UpdateModal:Add, Text, x25 y50 w470 h90 Center, %uMsg%
+    Gui, UpdateModal:Add, Text, x25 y52 w470 h90 Center, %uMsg%
     
     Gui, UpdateModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, UpdateModal:Add, Button, x40 y150 w240 h38 gOpenRepoUrl, 🚀 Открыть GitHub репозиторий
@@ -145,13 +145,13 @@ ShowSettingsGui(savedKey) {
     global
     Gui, Settings:Destroy
     Gui, Settings:+AlwaysOnTop -MaximizeBox -MinimizeBox -Caption +Border
-    Gui, Settings:Color, 121316, 1E1F23
+    Gui, Settings:Color, 0F1012, 18191E
     
     Gui, Settings:Font, s13 c5865F2 Bold, Segoe UI
     Gui, Settings:Add, Text, x20 y16 w400 Center, ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
     
-    Gui, Settings:Font, s9 c949BA4 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y42 w400 Center, [ СИСТЕМА ЗАКОНОДАТЕЛЬСТВА РОССИЯ ОНЛАЙН • V%CurrentVersion% ]
+    Gui, Settings:Font, s9 c57F287 Bold, Segoe UI
+    Gui, Settings:Add, Text, x20 y42 w400 Center, [ ВЕРСИЯ 3.6 • РОССИЯ ОНЛАЙН ]
     
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Settings:Add, Button, x30 y68 w380 h34 vUpdateSettingsBtn gOpenRepoUrl +Hidden, 🚀 ВЫШЛО ОБНОВЛЕНИЕ! СКАЧАТЬ
@@ -162,10 +162,10 @@ ShowSettingsGui(savedKey) {
         btnText := "Сохранить и запустить"
     } else {
         Gui, Settings:Add, Text, x20 y108 w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
-        btnText := "Запустить биндер"
+        btnText := "Запустить биндер V3.6"
     }
     
-    Gui, Settings:Font, s11 c2B2D31 Bold, Segoe UI
+    Gui, Settings:Font, s11 c18191E Bold, Segoe UI
     Gui, Settings:Add, Hotkey, x80 y154 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
     
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
@@ -173,6 +173,11 @@ ShowSettingsGui(savedKey) {
     
     Gui, Settings:Font, s8 c949BA4 Normal, Segoe UI
     Gui, Settings:Add, Text, x20 y244 w400 Center, Закрытие меню в игре: [%CurrentHotkey%] или [ESC]
+    
+    if (UpdateAvailable) {
+        GuiControl, Settings:Show, UpdateSettingsBtn
+        GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
+    }
     
     Gui, Settings:Show, w440 h275, Настройка биндера ГИБДД
 }
@@ -194,7 +199,7 @@ SaveAndStart:
     
     Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
     
-    TrayTip, ДПС ГИБДД Памятка, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
+    TrayTip, ДПС ГИБДД Памятка V3.6, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
     BuildOverlay()
     BuildSelectorGui()
     if (UpdateAvailable) {
@@ -209,45 +214,46 @@ BuildSelectorGui() {
     global
     Gui, Selector:Destroy
     Gui, Selector:+AlwaysOnTop +ToolWindow -Caption +LastFound +Border +HwndhSelectorGui
-    Gui, Selector:Color, 121316, 1E1F23
+    Gui, Selector:Color, 0F1012, 18191E
     
     WinSet, Transparent, 248
     
     Gui, Selector:Font, s12 c5865F2 Bold, Segoe UI
     Gui, Selector:Add, Text, x20 y16 w380 Center, БАЗА ЗАКОНОДАТЕЛЬСТВА
     
-    Gui, Selector:Font, s9 c949BA4 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y42 w380 Center, Выберите нужный раздел для открытия:
+    Gui, Selector:Font, s9 c57F287 Bold, Segoe UI
+    Gui, Selector:Add, Text, x20 y40 w380 Center, [ СИСТЕМА ДПС V3.6 ]
     
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y68 w360 h30 vUpdateSelectorBtn gOpenRepoUrl +Hidden, 🚀 ДОСТУПНО ОБНОВЛЕНИЕ
+    Gui, Selector:Add, Button, x30 y66 w360 h30 vUpdateSelectorBtn gOpenRepoUrl +Hidden, 🚀 ДОСТУПНО ОБНОВЛЕНИЕ
     
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y104 w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
-    Gui, Selector:Add, Button, x30 y146 w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
+    Gui, Selector:Add, Button, x30 y102 w360 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
+    Gui, Selector:Add, Button, x30 y144 w360 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
     
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x30 y190 w175 h34 gChooseKoAP, КоАП РО (по порядку)
-    Gui, Selector:Add, Button, x215 y190 w175 h34 gChooseUK, УК РО (по порядку)
+    Gui, Selector:Add, Button, x30 y188 w175 h34 gChooseKoAP, КоАП РО (по порядку)
+    Gui, Selector:Add, Button, x215 y188 w175 h34 gChooseUK, УК РО (по порядку)
     
-    Gui, Selector:Add, Button, x30 y230 w175 h34 gChooseProc, Процессуальный кодекс
-    Gui, Selector:Add, Button, x215 y230 w175 h34 gChoosePDD, ПДД РО
+    Gui, Selector:Add, Button, x30 y228 w175 h34 gChooseProc, Процессуальный кодекс
+    Gui, Selector:Add, Button, x215 y228 w175 h34 gChoosePDD, ПДД РО
     
-    Gui, Selector:Add, Button, x30 y270 w175 h34 gChoosePolice, ФЗ О Полиции
-    Gui, Selector:Add, Button, x215 y270 w175 h34 gChooseUstav, Устав ГИБДД
+    Gui, Selector:Add, Button, x30 y268 w175 h34 gChoosePolice, ФЗ О Полиции
+    Gui, Selector:Add, Button, x215 y268 w175 h34 gChooseUstav, Устав ГИБДД
     
-    Gui, Selector:Add, Button, x30 y310 w115 h34 gShowMiranda, ⚖ Миранда
-    Gui, Selector:Add, Button, x152 y310 w115 h34 gShowMegaphone, 📢 Мегафон
-    Gui, Selector:Add, Button, x275 y310 w115 h34 gShowBailCalc, 💰 Залог
+    Gui, Selector:Add, Button, x30 y308 w85 h34 gShowMiranda, ⚖ Права
+    Gui, Selector:Add, Button, x122 y308 w85 h34 gShowMegaphone, 📢 Рупор
+    Gui, Selector:Add, Button, x214 y308 w85 h34 gShowBailCalc, 💰 Залог
+    Gui, Selector:Add, Button, x305 y308 w85 h34 gShowRPBinder, 🚔 РП
     
-    Gui, Selector:Add, Button, x30 y350 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
+    Gui, Selector:Add, Button, x30 y348 w360 h32 gShowRulesFromSelector, [ ? ] Регламент ст. 10 КоАП / Подследственность
     
     Gui, Selector:Font, s8 c949BA4 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y390 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
+    Gui, Selector:Add, Text, x20 y388 w380 Center, Закрыть: [%CurrentHotkey%] / [ESC] | Перемещение за фон
 }
 
 ToggleSelectionMenu:
-    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || UpdateModalVisible) {
+    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || RPBinderVisible || UpdateModalVisible) {
         CloseAllWindows()
         return
     }
@@ -322,7 +328,7 @@ OpenOverlayWithCategory(catNumber) {
     GuiControl, Overlay:, SearchTerm, 
     Gosub, FilterArticles
     
-    Gui, Overlay:Show, w1040 h610 Center, GIBDD_Overlay
+    Gui, Overlay:Show, w1060 h620 Center, GIBDD_Overlay
     WinActivate, ahk_id %hOverlayGui%
     DllCall("SetForegroundWindow", "Ptr", hOverlayGui)
     DllCall("SetWindowPos", "Ptr", hOverlayGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
@@ -338,6 +344,7 @@ CloseAllWindows() {
     MirandaVisible := false
     MegaphoneVisible := false
     BailVisible := false
+    RPBinderVisible := false
     UpdateModalVisible := false
     Gui, Overlay:Hide
     Gui, Selector:Hide
@@ -345,6 +352,7 @@ CloseAllWindows() {
     Gui, MirandaModal:Hide
     Gui, MegaphoneModal:Hide
     Gui, BailModal:Hide
+    Gui, RPBinderModal:Hide
     Gui, UpdateModal:Hide
     if (PrevGameHwnd) {
         WinActivate, ahk_id %PrevGameHwnd%
@@ -395,6 +403,12 @@ Escape::
 return
 #IfWinExist
 
+#IfWinExist, GIBDD_RP
+Escape::
+    CloseAllWindows()
+return
+#IfWinExist
+
 #IfWinExist, GIBDD_Update
 Escape::
     CloseAllWindows()
@@ -405,20 +419,28 @@ BuildOverlay() {
     global
     Gui, Overlay:Destroy
     Gui, Overlay:+AlwaysOnTop +ToolWindow -Caption +LastFound +Border +HwndhOverlayGui
-    Gui, Overlay:Color, 121316, 1E1F23
+    Gui, Overlay:Color, 0F1012, 18191E
     Gui, Overlay:Default
     
     ActiveCategoryIndex := 1
     WinSet, Transparent, 248
     
     Gui, Overlay:Font, s12 c5865F2 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x25 y14 w310, ДПС ГИБДД КУТУЗОВСКИЙ
+    Gui, Overlay:Add, Text, x25 y14 w290, ДПС ГИБДД КУТУЗОВСКИЙ
     
-    Gui, Overlay:Font, s9 c57F287 Bold, Segoe UI
-    Gui, Overlay:Add, Button, x340 y12 w250 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
+    Gui, Overlay:Font, s8 c57F287 Bold, Segoe UI
+    Gui, Overlay:Add, Text, x320 y18 w70, [ V3.6 ]
+    
+    if (UpdateAvailable) {
+        Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
+        Gui, Overlay:Add, Button, x400 y12 w230 h28 vUpdateNoticeBtn gOpenRepoUrl, 🚀 ОБНОВИТЬ СКРИПТ
+    } else {
+        Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
+        Gui, Overlay:Add, Button, x400 y12 w230 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
+    }
     
     Gui, Overlay:Font, s9 c949BA4 Normal, Segoe UI
-    Gui, Overlay:Add, Text, x620 y16 w395 Right, Закрыть: [%CurrentHotkey%] / [ESC] | Двойной клик / Enter: копия
+    Gui, Overlay:Add, Text, x650 y16 w385 Right, Закрыть: [%CurrentHotkey%] / [ESC] | Двойной клик / Enter: копия
     
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Overlay:Add, Button, x25 y46 w80 h28 gTabPop, ★ Топ
@@ -431,10 +453,11 @@ BuildOverlay() {
     Gui, Overlay:Add, Button, x600 y46 w75 h28 gTabUstav, Устав
     
     Gui, Overlay:Font, s9 c5865F2 Bold, Segoe UI
-    Gui, Overlay:Add, Button, x690 y46 w80 h28 gShowMiranda, ⚖ Права
-    Gui, Overlay:Add, Button, x775 y46 w85 h28 gShowMegaphone, 📢 Мегафон
-    Gui, Overlay:Add, Button, x865 y46 w75 h28 gShowBailCalc, 💰 Залог
-    Gui, Overlay:Add, Button, x945 y46 w70 h28 gOpenSettingsFromMenu, ⚙ Бинд
+    Gui, Overlay:Add, Button, x685 y46 w75 h28 gShowMiranda, ⚖ Права
+    Gui, Overlay:Add, Button, x765 y46 w80 h28 gShowMegaphone, 📢 Рупор
+    Gui, Overlay:Add, Button, x850 y46 w70 h28 gShowBailCalc, 💰 Залог
+    Gui, Overlay:Add, Button, x925 y46 w55 h28 gShowRPBinder, 🚔 РП
+    Gui, Overlay:Add, Button, x985 y46 w50 h28 gOpenSettingsFromMenu, ⚙
     
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Overlay:Add, Text, x25 y88 w50 h26 +0x200, Поиск:
@@ -448,19 +471,19 @@ BuildOverlay() {
     Gui, Overlay:Add, Button, x602 y86 w150 h28 gShowRules, [ ? ] Регламент/Суд
     
     Gui, Overlay:Font, s8 c57F287 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x765 y92 w250 h18 Right vCountLabel, Загрузка базы...
+    Gui, Overlay:Add, Text, x765 y92 w270 h18 Right vCountLabel, Загрузка базы...
     
     Gui, Overlay:Font, s9 cFFFFFF Normal, Segoe UI
-    Gui, Overlay:Add, ListView, x25 y122 w990 h320 vMyLV gLVClick +AltSubmit -Multi +Grid Background1E1F23 cFFFFFF, Раздел|Статья / Пункт|Наказание / Санкция / Содержание
+    Gui, Overlay:Add, ListView, x25 y122 w1010 h330 vMyLV gLVClick +AltSubmit -Multi +Grid Background18191E cFFFFFF, Раздел|Статья / Пункт|Наказание / Санкция / Содержание
     LV_ModifyCol(1, "130 Left")
-    LV_ModifyCol(2, "520 Left")
-    LV_ModifyCol(3, "335 Left")
+    LV_ModifyCol(2, "530 Left")
+    LV_ModifyCol(3, "340 Left")
     
     Gui, Overlay:Font, s9 c5865F2 Bold, Segoe UI
-    Gui, Overlay:Add, GroupBox, x25 y452 w990 h140, КАРТОЧКА СТАТЬИ / РЕГЛАМЕНТ:
+    Gui, Overlay:Add, GroupBox, x25 y462 w1010 h140, КАРТОЧКА СТАТЬИ / РЕГЛАМЕНТ:
     
     Gui, Overlay:Font, s10 cE0E2E6 Normal, Consolas
-    Gui, Overlay:Add, Edit, x38 y474 w964 h108 vDetailBox ReadOnly -E0x200 +Multi Background18191C +Border, Выберите статью в списке выше (нажатие Enter или двойной клик копирует информацию в буфер обмена)...
+    Gui, Overlay:Add, Edit, x38 y484 w984 h108 vDetailBox ReadOnly -E0x200 +Multi Background101114 +Border, Выберите статью в списке выше (нажатие Enter или двойной клик копирует информацию в буфер обмена)...
     
     Gosub, FilterArticles
 }
@@ -594,7 +617,7 @@ ShowMiranda:
     global MirandaVisible := true
     Gui, MirandaModal:Destroy
     Gui, MirandaModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMirandaGui
-    Gui, MirandaModal:Color, 121316, 1E1F23
+    Gui, MirandaModal:Color, 0F1012, 18191E
     
     Gui, MirandaModal:Font, s12 c5865F2 Bold, Segoe UI
     Gui, MirandaModal:Add, Text, x20 y16 w540 Center, ПРАВИЛО МИРАНДЫ (СТ. 6 ГЛ. II ПК РО)
@@ -635,7 +658,7 @@ ShowMegaphone:
     global MegaphoneVisible := true
     Gui, MegaphoneModal:Destroy
     Gui, MegaphoneModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMegaphoneGui
-    Gui, MegaphoneModal:Color, 121316, 1E1F23
+    Gui, MegaphoneModal:Color, 0F1012, 18191E
     
     Gui, MegaphoneModal:Font, s12 c5865F2 Bold, Segoe UI
     Gui, MegaphoneModal:Add, Text, x20 y16 w600 Center, ТРЕБОВАНИЯ В МЕГАФОН (СТ. 6 ГЛ. XI ПК РО)
@@ -694,7 +717,7 @@ ShowBailCalc:
     global BailVisible := true
     Gui, BailModal:Destroy
     Gui, BailModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhBailGui
-    Gui, BailModal:Color, 121316, 1E1F23
+    Gui, BailModal:Color, 0F1012, 18191E
     
     Gui, BailModal:Font, s12 c5865F2 Bold, Segoe UI
     Gui, BailModal:Add, Text, x20 y16 w400 Center, КАЛЬКУЛЯТОР ЗАЛОГА (СТ. 5.10 УК РО)
@@ -748,11 +771,77 @@ CloseBail:
     BailVisible := false
 return
 
+ShowRPBinder:
+    global RPBinderVisible := true
+    Gui, RPBinderModal:Destroy
+    Gui, RPBinderModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRPGui
+    Gui, RPBinderModal:Color, 0F1012, 18191E
+    
+    Gui, RPBinderModal:Font, s12 c5865F2 Bold, Segoe UI
+    Gui, RPBinderModal:Add, Text, x20 y16 w580 Center, БЫСТРЫЕ RP-ОТЫГРОВКИ ДПС ГИБДД
+    
+    Gui, RPBinderModal:Font, s9 c949BA4 Normal, Segoe UI
+    Gui, RPBinderModal:Add, Text, x20 y40 w580 Center, Нажмите на любую кнопку для копирования отыгровки в буфер обмена:
+    
+    Gui, RPBinderModal:Font, s9 cFFFFFF Bold, Segoe UI
+    Gui, RPBinderModal:Add, Button, x30 y70 w265 h36 gRPDoc, 🪪 Предъявить удостоверение
+    Gui, RPBinderModal:Add, Button, x305 y70 w265 h36 gRPCuff, ⛓ Надеть наручники
+    
+    Gui, RPBinderModal:Add, Button, x30 y114 w265 h36 gRPKpk, 💻 Проверка по базе КПК
+    Gui, RPBinderModal:Add, Button, x305 y114 w265 h36 gRPFrisk, 🧤 Первичный обыск
+    
+    Gui, RPBinderModal:Add, Button, x30 y158 w265 h36 gRPAlco, 🧪 Проверка на алкотестере
+    Gui, RPBinderModal:Add, Button, x305 y158 w265 h36 gRPProtocol, 📝 Составить протокол КоАП
+    
+    Gui, RPBinderModal:Font, s10 cFFFFFF Bold, Segoe UI
+    Gui, RPBinderModal:Add, Button, x210 y210 w200 h36 gCloseRPBinder, Закрыть
+    
+    Gui, RPBinderModal:Show, w600 h265 Center, GIBDD_RP
+    WinActivate, ahk_id %hRPGui%
+    DllCall("SetForegroundWindow", "Ptr", hRPGui)
+    DllCall("SetWindowPos", "Ptr", hRPGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+return
+
+RPDoc:
+    Clipboard := "/do Служебное удостоверение сотрудника ГИБДД находится в нагрудном кармане.`n/me резким движением руки достал удостоверение и показал гражданину в развернутом виде"
+    TrayTip, ДПС ГИБДД, Отыгровка удостоверения скопирована!, 2, 1
+return
+
+RPCuff:
+    Clipboard := "/me снял наручники с поясного держателя, затем завел руки задержанного за спину и защелкнул браслеты"
+    TrayTip, ДПС ГИБДД, Отыгровка наручников скопирована!, 2, 1
+return
+
+RPKpk:
+    Clipboard := "/me снял служебный КПК с поясного держателя, включил его и вошел в единую базу данных МВД`n/me ввел персональные данные гражданина, после чего проверил информацию на наличие розыска"
+    TrayTip, ДПС ГИБДД, Отыгровка КПК скопирована!, 2, 1
+return
+
+RPFrisk:
+    Clipboard := "/me надел одноразовые резиновые перчатки, затем провел руками по верхним и нижним карманам гражданина`n/do В ходе первичного досмотра были обнаружены личные вещи и предметы."
+    TrayTip, ДПС ГИБДД, Отыгровка первичного обыска скопирована!, 2, 1
+return
+
+RPAlco:
+    Clipboard := "/me достал портативный алкотестер из подсумка, вскрыл одноразовый мундштук и установил его в прибор`n/me включил прибор и протянул водителю со словами: «Сделайте глубокий выдох в мундштук»"
+    TrayTip, ДПС ГИБДД, Отыгровка алкотестера скопирована!, 2, 1
+return
+
+RPProtocol:
+    Clipboard := "/me достал бланк протокола об административном правонарушении и шариковую ручку из планшета`n/me внес данные нарушителя, место и статью совершенного правонарушения, затем поставил личную подпись"
+    TrayTip, ДПС ГИБДД, Отыгровка протокола скопирована!, 2, 1
+return
+
+CloseRPBinder:
+    Gui, RPBinderModal:Hide
+    RPBinderVisible := false
+return
+
 ShowRules:
     global RulesVisible := true
     Gui, RulesModal:Destroy
     Gui, RulesModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRulesGui
-    Gui, RulesModal:Color, 121316, 1E1F23
+    Gui, RulesModal:Color, 0F1012, 18191E
     
     Gui, RulesModal:Font, s12 c5865F2 Bold, Segoe UI
     Gui, RulesModal:Add, Text, x25 y16 w560, ПРИМЕЧАНИЯ И РЕГЛАМЕНТ ДПС
@@ -1434,7 +1523,7 @@ InitDatabase() {
 ФЗ О Полиции|Статья 30. Порядок представления сотрудника полиции гражданам|Назвать звание, фамилию, должность и предъявить служебное удостоверение|0
 ФЗ О Полиции|Статья 31. Действия сотрудника вне времени несения службы|Вызов дежурных нарядов и предотвращение тяжких последствий при ЧП|0
 ФЗ О Полиции|Статья 32. Законное требование сотрудника полиции|Обязательно для граждан; конкретное, этичное, в приказном наклонении|0
-ФЗ О Полиции|Статья 33. Проверка документов и установление личности граждан|Основания: подозрение, розыск, ориентировка, охраняемая территория|0
+ФЗ О Полиции|Статья 33. Проверка документов и установление личности гражданам|Основания: подозрение, розыск, ориентировка, охраняемая территория|0
 ФЗ О Полиции|Статья 34. Использование государственных информационных систем|Строго по службе; запрет слива баз данных и пробива в личных целях|0
 ФЗ О Полиции|Статья 35. Вызов граждан и получение объяснений|Приглашение для опроса; принудительный привод только по постановлению|0
 ФЗ О Полиции|Статья 36. Доставление и задержание лиц|Ограничение свободы строго по закону; задержание не является наказанием|0
