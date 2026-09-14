@@ -18,8 +18,7 @@ global CurrentVersion := "3.6"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
-global UpdateCheckBusy := false
-global UpdateCheckFailed := false
+global LastUpdateError := ""
 
 IniFile := A_ScriptDir . "\config_gibdd.ini"
 IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, NONE
@@ -33,138 +32,242 @@ BuildSelectorGui()
 
 ShowSettingsGui(CurrentHotkey)
 
-SetTimer, CheckUpdateFast, -100
-SetTimer, CheckUpdatePeriodic, 600000
+SetTimer, CheckUpdateFast, -1500
 return
+
+WM_LBUTTONDOWN() {
+    PostMessage, 0xA1, 2,,, A
+}
 
 CheckUpdateFast:
     CheckUpdate()
 return
 
-CheckUpdatePeriodic:
-    CheckUpdate()
-return
-
 CheckUpdate() {
-    global CurrentVersion, LatestVersion, UpdateAvailable, UpdateCheckBusy, UpdateCheckFailed
+    global CurrentVersion, LatestVersion, UpdateAvailable, LastUpdateError
 
-    if (UpdateCheckBusy)
-        return
+    UpdateAvailable := false
+    LatestVersion := ""
+    LastUpdateError := ""
 
-    UpdateCheckBusy := true
-    UpdateCheckFailed := false
+    GuiControl, Settings:, CheckStatusLabel, Проверка version.txt на GitHub...
 
-    urls := []
-    urls.Push("https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt")
-    urls.Push("https://cdn.jsdelivr.net/gh/Makson3322/russiaonline_gibdd@main/version.txt")
-    urls.Push("https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/master/version.txt")
-
-    ver := ""
-    for idx, url in urls {
-        ver := GetUrlFast(url)
-        if (ver != "")
-            break
+    remoteVersion := GetRemoteVersion()
+    if (remoteVersion = "") {
+        HideUpdateUI()
+        if (LastUpdateError != "")
+            GuiControl, Settings:, CheckStatusLabel, ✖ Ошибка: %LastUpdateError%
+        else
+            GuiControl, Settings:, CheckStatusLabel, ✖ Не удалось получить version.txt
+        return false
     }
 
-    if (ver == "") {
-        UpdateCheckFailed := true
-        UpdateCheckBusy := false
-        UpdateStatusLabel("Не удалось проверить GitHub")
-        return
-    }
+    LatestVersion := remoteVersion
 
-    ver := NormalizeVersion(ver)
-
-    if (!IsValidVersion(ver)) {
-        UpdateCheckFailed := true
-        UpdateCheckBusy := false
-        UpdateStatusLabel("GitHub вернул некорректную версию")
-        return
-    }
-
-    LatestVersion := ver
-
-    if (IsNewer(ver, CurrentVersion)) {
+    if (IsNewer(remoteVersion, CurrentVersion)) {
         UpdateAvailable := true
         ApplyUpdateUI()
-        UpdateStatusLabel("Найдено обновление: V" . LatestVersion)
-    } else {
-        UpdateAvailable := false
-        HideUpdateUI()
-        UpdateStatusLabel("✓ Версия V" . CurrentVersion . " актуальна")
+        GuiControl, Settings:, CheckStatusLabel, ⚡ Доступна V%remoteVersion% (у вас V%CurrentVersion%)
+        ShowUpdateModal()
+        return true
     }
 
-    UpdateCheckBusy := false
+    HideUpdateUI()
+    GuiControl, Settings:, CheckStatusLabel, ✓ V%CurrentVersion% — актуальная (GitHub: V%remoteVersion%)
+    return true
 }
 
-NormalizeVersion(value) {
-    value := Trim(value)
-    value := RegExReplace(value, "^\x{FEFF}", "")
-    value := RegExReplace(value, "[\r\n\t ]+", "")
-    value := RegExReplace(value, "^v", "", 1)
-    return Trim(value)
+ManualCheckUpdate:
+    GuiControl, Settings:, CheckStatusLabel, Проверка version.txt на GitHub...
+    CheckUpdate()
+return	
+
+GetRemoteVersion() {
+    global LastUpdateError
+
+    version := CurlGetRaw()
+    if (version != "")
+        return version
+
+    version := CurlGetAPI()
+    if (version != "")
+        return version
+
+    return ""
 }
 
-IsValidVersion(value) {
-    return RegExMatch(value, "^\d+(?:\.\d+)*$")
+CurlGetRaw() {
+    global LastUpdateError
+
+    tmpOut := A_Temp . "\gibdd_raw_" . A_TickCount . ".txt"
+    FileDelete, %tmpOut%
+
+    url := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt"
+    cmd := "curl.exe -s -L --max-time 15 -o """ . tmpOut . """ """ . url . """"
+
+    RunWait, %ComSpec% /c %cmd%, , Hide UseErrorLevel
+
+    if (!FileExist(tmpOut)) {
+        LastUpdateError := "raw: нет ответа"
+        return ""
+    }
+
+    FileRead, raw, %tmpOut%
+    FileDelete, %tmpOut%
+
+    raw := RegExReplace(raw, "^\xEF\xBB\xBF", "")
+    raw := RegExReplace(raw, "[\r\n\t ]+", "")
+    raw := Trim(raw)
+
+    if (SubStr(raw, 1, 1) = "v" || SubStr(raw, 1, 1) = "V")
+        raw := SubStr(raw, 2)
+
+    if (raw = "" || !RegExMatch(raw, "^\d+(\.\d+)*$")) {
+        LastUpdateError := "raw: некорректно (" . SubStr(raw, 1, 50) . ")"
+        return ""
+    }
+
+    LastUpdateError := ""
+    return raw
+}
+
+CurlGetAPI() {
+    global LastUpdateError
+
+    tmpOut := A_Temp . "\gibdd_api_" . A_TickCount . ".txt"
+    FileDelete, %tmpOut%
+
+    url := "https://api.github.com/repos/Makson3322/russiaonline_gibdd/contents/version.txt"
+    cmd := "curl.exe -s -L --max-time 15 -H ""Accept: application/vnd.github.v3+json"" -o """ . tmpOut . """ """ . url . """"
+
+    RunWait, %ComSpec% /c %cmd%, , Hide UseErrorLevel
+
+    if (!FileExist(tmpOut)) {
+        LastUpdateError := "api: нет ответа"
+        return ""
+    }
+
+    FileRead, json, %tmpOut%
+    FileDelete, %tmpOut%
+
+    if (!RegExMatch(json, """content""\s*:\s*""([^""]+)""", m)) {
+        LastUpdateError := "api: нет content"
+        return ""
+    }
+
+    b64 := m1
+    b64 := StrReplace(b64, "\n", "")
+    b64 := StrReplace(b64, "`n", "")
+    b64 := StrReplace(b64, "`r", "")
+    b64 := StrReplace(b64, " ", "")
+
+    xml := ComObjCreate("Microsoft.XMLDOM")
+    node := xml.createElement("b")
+    node.dataType := "bin.base64"
+    node.text := b64
+    bin := node.nodeTypedValue
+
+    raw := ""
+    Loop, % StrLen(bin) {
+        raw .= Chr(NumGet(bin, A_Index - 1, "UChar"))
+    }
+
+    raw := RegExReplace(raw, "^\xEF\xBB\xBF", "")
+    raw := RegExReplace(raw, "[\r\n\t ]+", "")
+    raw := Trim(raw)
+
+    if (SubStr(raw, 1, 1) = "v" || SubStr(raw, 1, 1) = "V")
+        raw := SubStr(raw, 2)
+
+    if (raw = "" || !RegExMatch(raw, "^\d+(\.\d+)*$")) {
+        LastUpdateError := "api: некорректно"
+        return ""
+    }
+
+    LastUpdateError := ""
+    return raw
+}
+
+GetRemoteVersionRaw() {
+    global LastUpdateError
+
+    try {
+        http := ComObjCreate("MSXML2.ServerXMLHTTP.6.0")
+        http.SetTimeouts(8000, 8000, 8000, 15000)
+
+        url := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt?t=" . A_TickCount
+
+        http.Open("GET", url, false)
+        http.setRequestHeader("User-Agent", "GIBDD-Updater/1.0")
+        http.setRequestHeader("Cache-Control", "no-cache")
+        http.send()
+
+        if (http.status != 200) {
+            LastUpdateError := "Raw HTTP " . http.status
+            return ""
+        }
+
+        raw := http.responseText
+        raw := RegExReplace(raw, "^\xEF\xBB\xBF", "")
+        raw := RegExReplace(raw, "[\r\n\t ]+", "")
+        raw := Trim(raw)
+
+        if (SubStr(raw, 1, 1) = "v" || SubStr(raw, 1, 1) = "V")
+            raw := SubStr(raw, 2)
+
+        if (raw = "" || !RegExMatch(raw, "^\d+(\.\d+)*$")) {
+            LastUpdateError := "Raw: некорректно (" . raw . ")"
+            return ""
+        }
+
+        LastUpdateError := ""
+        return raw
+
+    } catch e {
+        LastUpdateError := "Raw: " . e.Message
+        return ""
+    }
+}
+
+Base64Decode(str) {
+    try {
+        xml := ComObjCreate("Microsoft.XMLDOM")
+        node := xml.createElement("b")
+        node.dataType := "bin.base64"
+        node.text := str
+        bin := node.nodeTypedValue
+
+        out := ""
+        Loop, % StrLen(bin) {
+            out .= Chr(NumGet(bin, A_Index - 1, "UChar"))
+        }
+        return out
+    } catch {
+        return ""
+    }
 }
 
 IsNewer(vRemote, vLocal) {
-    vRemote := NormalizeVersion(vRemote)
-    vLocal := NormalizeVersion(vLocal)
-
-    if (!IsValidVersion(vRemote) || !IsValidVersion(vLocal))
-        return false
-
     aR := StrSplit(vRemote, ".")
     aL := StrSplit(vLocal, ".")
     m := aR.Length() > aL.Length() ? aR.Length() : aL.Length()
-
     Loop, %m%
     {
         r := (A_Index <= aR.Length()) ? aR[A_Index] + 0 : 0
         l := (A_Index <= aL.Length()) ? aL[A_Index] + 0 : 0
-
         if (r > l)
             return true
         if (r < l)
             return false
     }
-
     return false
 }
 
-GetUrlFast(url) {
-    try {
-        whr := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-        whr.Option(6) := true
-        whr.Option(9) := 2048
-        whr.SetTimeouts(1200, 1200, 1800, 1800)
-        whr.Open("GET", url . "?t=" . A_TickCount, false)
-        whr.SetRequestHeader("User-Agent", "RussiaOnline-GIBDD/3.6")
-        whr.SetRequestHeader("Accept", "text/plain")
-        whr.SetRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-        whr.SetRequestHeader("Pragma", "no-cache")
-        whr.Send()
-
-        if (whr.Status == 200)
-            return whr.ResponseText
-    } catch e {
-    }
-
-    return ""
-}
-
-UpdateStatusLabel(text) {
-    try GuiControl, Settings:, CheckStatusLabel, %text%
-}
-
 HideUpdateUI() {
-    try GuiControl, Overlay:Hide, UpdateNoticeBtn
-    try GuiControl, Selector:Hide, UpdateSelectorBtn
-    try GuiControl, Settings:Hide, UpdateSettingsBtn
+    GuiControl, Overlay:Hide, UpdateNoticeBtn
+    GuiControl, Selector:Hide, UpdateSelectorBtn
+    GuiControl, Settings:Hide, UpdateSettingsBtn
 }
-
 
 ApplyUpdateUI() {
     global LatestVersion
@@ -175,11 +278,6 @@ ApplyUpdateUI() {
     GuiControl, Settings:Show, UpdateSettingsBtn
     GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
 }
-
-ManualCheckUpdate:
-    UpdateStatusLabel("Проверка обновлений...")
-    SetTimer, CheckUpdateFast, -10
-return
 
 ShowUpdateModal() {
     global LatestVersion, CurrentVersion, RepoURL, UpdateModalVisible, hUpdateGui
@@ -209,7 +307,7 @@ ShowUpdateModal() {
 }
 
 OpenRepoUrl:
-    Run https://github.com/Makson3322/russiaonline_gibdd
+    Run %RepoURL%
     Gui, UpdateModal:Hide
     UpdateModalVisible := false
 return
@@ -240,7 +338,7 @@ ShowSettingsGui(savedKey) {
         btnText := "Сохранить и запустить"
     } else {
         Gui, Settings:Add, Text, x20 y108 w400 Center, Текущая клавиша вызова: [%savedKey%]`nВы можете изменить ее или продолжить:
-        btnText := "Запустить биндер V3.6"
+        btnText := "Запустить биндер"
     }
     
     Gui, Settings:Font, s11 c18191E Bold, Segoe UI
@@ -278,7 +376,7 @@ SaveAndStart:
     
     Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
     
-    TrayTip, ДПС ГИБДД Памятка V3.6, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
+    TrayTip, ДПС ГИБДД Памятка, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
     BuildOverlay()
     BuildSelectorGui()
     if (UpdateAvailable) {
@@ -510,13 +608,8 @@ BuildOverlay() {
     Gui, Overlay:Font, s8 c57F287 Bold, Segoe UI
     Gui, Overlay:Add, Text, x320 y18 w70, [ V3.6 ]
     
-    if (UpdateAvailable) {
-        Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-        Gui, Overlay:Add, Button, x400 y12 w230 h28 vUpdateNoticeBtn gOpenRepoUrl, 🚀 ОБНОВИТЬ СКРИПТ
-    } else {
-        Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-        Gui, Overlay:Add, Button, x400 y12 w230 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
-    }
+    Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
+    Gui, Overlay:Add, Button, x400 y12 w230 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
     
     Gui, Overlay:Font, s9 c949BA4 Normal, Segoe UI
     Gui, Overlay:Add, Text, x650 y16 w385 Right, Закрыть: [%CurrentHotkey%] / [ESC] | Двойной клик / Enter: копия
