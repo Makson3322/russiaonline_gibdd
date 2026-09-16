@@ -14,29 +14,152 @@ if not A_IsAdmin
     ExitApp
 }
 
-global CurrentVersion := "3.7"
+global CurrentVersion := "3.8"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
 global LastUpdateError := ""
 
-IniFile := A_ScriptDir . "\config_gibdd.ini"
-IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, NONE
+global CurrentTheme := "Фиолетовый градиент"
+global CLR_BG_TOP     := "0A1A4F"
+global CLR_BG_BOT     := "8B3FD1"
+global CLR_PANEL      := "0F1533"
+global CLR_PANEL2     := "141B44"
+global CLR_TEXT       := "F1F5F9"
+global CLR_MUTED      := "A9B4D0"
+global CLR_ACCENT     := "8B5CF6"
+global CLR_ACCENT2    := "A78BFA"
+global CLR_SUCCESS    := "34D399"
+global CLR_WARN       := "FBBF24"
+global CLR_DANGER     := "F87171"
+global CLR_TITLE      := "FFFFFF"
 
+global TimerRemaining := 0
+global TimerActive := false
+global TimerModeName := "Не задан"
+
+global IniFile := A_ScriptDir . "\config_gibdd.ini"
+IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, F3
+IniRead, SavedTheme, %IniFile%, Settings, Theme, Фиолетовый градиент
+
+ApplyTheme(SavedTheme)
 InitDatabase()
 
 OnMessage(0x0201, "WM_LBUTTONDOWN")
 
 BuildOverlay()
 BuildSelectorGui()
-
+BuildTimerGui()
 ShowSettingsGui(CurrentHotkey)
+
+if (CurrentHotkey != "NONE" && CurrentHotkey != "") {
+    try Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
+}
 
 SetTimer, CheckUpdateFast, -1500
 return
 
-WM_LBUTTONDOWN() {
+ApplyTheme(name) {
+    global
+    CurrentTheme := name
+    if (name = "Темный графит") {
+        CLR_BG_TOP     := "111215"
+        CLR_BG_BOT     := "20232A"
+        CLR_PANEL      := "171920"
+        CLR_PANEL2     := "1F222B"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "94A3B8"
+        CLR_ACCENT     := "6366F1"
+        CLR_ACCENT2    := "818CF8"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    } else if (name = "Синий ДПС") {
+        CLR_BG_TOP     := "0B2240"
+        CLR_BG_BOT     := "123B6B"
+        CLR_PANEL      := "081A31"
+        CLR_PANEL2     := "0F2E54"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "8DA9C4"
+        CLR_ACCENT     := "2563EB"
+        CLR_ACCENT2    := "60A5FA"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    } else if (name = "Изумруд") {
+        CLR_BG_TOP     := "05241C"
+        CLR_BG_BOT     := "0D4733"
+        CLR_PANEL      := "041C16"
+        CLR_PANEL2     := "093828"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "A7F3D0"
+        CLR_ACCENT     := "059669"
+        CLR_ACCENT2    := "34D399"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    } else if (name = "Кровавый рубин") {
+        CLR_BG_TOP     := "260606"
+        CLR_BG_BOT     := "521212"
+        CLR_PANEL      := "1C0505"
+        CLR_PANEL2     := "360C0C"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "FECACA"
+        CLR_ACCENT     := "DC2626"
+        CLR_ACCENT2    := "F87171"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    } else if (name = "Янтарь") {
+        CLR_BG_TOP     := "1F1820"
+        CLR_BG_BOT     := "3A281A"
+        CLR_PANEL      := "171219"
+        CLR_PANEL2     := "271D1A"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "FDE68A"
+        CLR_ACCENT     := "D97706"
+        CLR_ACCENT2    := "FBBF24"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    } else {
+        CurrentTheme   := "Фиолетовый градиент"
+        CLR_BG_TOP     := "0A1A4F"
+        CLR_BG_BOT     := "8B3FD1"
+        CLR_PANEL      := "0F1533"
+        CLR_PANEL2     := "141B44"
+        CLR_TEXT       := "F1F5F9"
+        CLR_MUTED      := "A9B4D0"
+        CLR_ACCENT     := "8B5CF6"
+        CLR_ACCENT2    := "A78BFA"
+        CLR_SUCCESS    := "34D399"
+        CLR_WARN       := "FBBF24"
+        CLR_DANGER     := "F87171"
+        CLR_TITLE      := "FFFFFF"
+    }
+}
+
+WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
+    WinGetClass, cls, ahk_id %hwnd%
+    if (cls = "Edit" || cls = "SysListView32" || cls = "Button" || cls = "ComboBox")
+        return
     PostMessage, 0xA1, 2,,, A
+}
+
+ApplyRoundedCorners(hwnd, w, h, r) {
+    hRgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", r, "Int", r, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", hwnd, "Ptr", hRgn, "UInt", 1)
+}
+
+CopyToClip(strText, notifyMsg) {
+    Clipboard := strText
+    SoundPlay, *-1
+    TrayTip, ДПС ГИБДД [V3.8], %notifyMsg%, 2, 1
 }
 
 CheckUpdateFast:
@@ -50,15 +173,15 @@ CheckUpdate() {
     LatestVersion := ""
     LastUpdateError := ""
 
-    GuiControl, Settings:, CheckStatusLabel, 🔍 Проверка обновлений на GitHub...
+    GuiControl, Settings:, CheckStatusLabel, Проверка обновлений на GitHub...
 
     remoteVersion := GetRemoteVersion()
     if (remoteVersion = "") {
         HideUpdateUI()
         if (LastUpdateError != "")
-            GuiControl, Settings:, CheckStatusLabel, ✖ Ошибка сети: %LastUpdateError%
+            GuiControl, Settings:, CheckStatusLabel, Ошибка сети: %LastUpdateError%
         else
-            GuiControl, Settings:, CheckStatusLabel, ✖ Не удалось получить данные о версии
+            GuiControl, Settings:, CheckStatusLabel, Не удалось получить данные о версии
         return false
     }
 
@@ -67,123 +190,97 @@ CheckUpdate() {
     if (IsNewer(remoteVersion, CurrentVersion)) {
         UpdateAvailable := true
         ApplyUpdateUI()
-        GuiControl, Settings:, CheckStatusLabel, ⚡ Доступна V%remoteVersion% (текущая V%CurrentVersion%)
+        GuiControl, Settings:, CheckStatusLabel, Доступна V%remoteVersion% (текущая V%CurrentVersion%)
         ShowUpdateModal()
         return true
     }
 
     HideUpdateUI()
-    GuiControl, Settings:, CheckStatusLabel, ✓ V%CurrentVersion% — установлена актуальная версия
+    GuiControl, Settings:, CheckStatusLabel, V%CurrentVersion% - установлена актуальная версия
     return true
 }
 
 ManualCheckUpdate:
-    GuiControl, Settings:, CheckStatusLabel, 🔍 Подключение к GitHub...
+    GuiControl, Settings:, CheckStatusLabel, Подключение к GitHub...
     CheckUpdate()
-return	
+return
 
 GetRemoteVersion() {
     global LastUpdateError
-
     version := CurlGetRaw()
     if (version != "")
         return version
-
     version := CurlGetAPI()
     if (version != "")
         return version
-
     return ""
 }
 
 CurlGetRaw() {
     global LastUpdateError
-
     tmpOut := A_Temp . "\gibdd_raw_" . A_TickCount . ".txt"
     FileDelete, %tmpOut%
-
     url := "https://raw.githubusercontent.com/Makson3322/russiaonline_gibdd/main/version.txt"
     cmd := "curl.exe -s -L --max-time 15 -o """ . tmpOut . """ """ . url . """"
-
     RunWait, %ComSpec% /c %cmd%, , Hide UseErrorLevel
-
     if (!FileExist(tmpOut)) {
         LastUpdateError := "raw: нет ответа"
         return ""
     }
-
     FileRead, raw, %tmpOut%
     FileDelete, %tmpOut%
-
     raw := RegExReplace(raw, "^\xEF\xBB\xBF", "")
     raw := RegExReplace(raw, "[\r\n\t ]+", "")
     raw := Trim(raw)
-
     if (SubStr(raw, 1, 1) = "v" || SubStr(raw, 1, 1) = "V")
         raw := SubStr(raw, 2)
-
     if (raw = "" || !RegExMatch(raw, "^\d+(\.\d+)*$")) {
-        LastUpdateError := "raw: некорректно (" . SubStr(raw, 1, 50) . ")"
+        LastUpdateError := "raw: некорректно"
         return ""
     }
-
     LastUpdateError := ""
     return raw
 }
 
 CurlGetAPI() {
     global LastUpdateError
-
     tmpOut := A_Temp . "\gibdd_api_" . A_TickCount . ".txt"
     FileDelete, %tmpOut%
-
     url := "https://api.github.com/repos/Makson3322/russiaonline_gibdd/contents/version.txt"
     cmd := "curl.exe -s -L --max-time 15 -H ""Accept: application/vnd.github.v3+json"" -o """ . tmpOut . """ """ . url . """"
-
     RunWait, %ComSpec% /c %cmd%, , Hide UseErrorLevel
-
     if (!FileExist(tmpOut)) {
         LastUpdateError := "api: нет ответа"
         return ""
     }
-
     FileRead, json, %tmpOut%
     FileDelete, %tmpOut%
-
     if (!RegExMatch(json, """content""\s*:\s*""([^""]+)""", m)) {
         LastUpdateError := "api: нет content"
         return ""
     }
-
     b64 := m1
     b64 := StrReplace(b64, "\n", "")
     b64 := StrReplace(b64, "`n", "")
     b64 := StrReplace(b64, "`r", "")
     b64 := StrReplace(b64, " ", "")
-
     xml := ComObjCreate("Microsoft.XMLDOM")
     node := xml.createElement("b")
     node.dataType := "bin.base64"
     node.text := b64
     bin := node.nodeTypedValue
-
     raw := ""
-    Loop, % StrLen(bin) {
+    Loop, % StrLen(bin)
         raw .= Chr(NumGet(bin, A_Index - 1, "UChar"))
-    }
-
     raw := RegExReplace(raw, "^\xEF\xBB\xBF", "")
     raw := RegExReplace(raw, "[\r\n\t ]+", "")
     raw := Trim(raw)
-
     if (SubStr(raw, 1, 1) = "v" || SubStr(raw, 1, 1) = "V")
         raw := SubStr(raw, 2)
-
     if (raw = "" || !RegExMatch(raw, "^\d+(\.\d+)*$")) {
         LastUpdateError := "api: некорректно"
         return ""
     }
-
     LastUpdateError := ""
     return raw
 }
@@ -213,38 +310,42 @@ HideUpdateUI() {
 ApplyUpdateUI() {
     global LatestVersion
     GuiControl, Overlay:Show, UpdateNoticeBtn
-    GuiControl, Overlay:, UpdateNoticeBtn, 🚀 ОБНОВИТЬ ДО V%LatestVersion%
+    GuiControl, Overlay:, UpdateNoticeBtn, ОБНОВИТЬ ДО V%LatestVersion%
     GuiControl, Selector:Show, UpdateSelectorBtn
-    GuiControl, Selector:, UpdateSelectorBtn, 🚀 ДОСТУПНО ОБНОВЛЕНИЕ: V%LatestVersion%!
+    GuiControl, Selector:, UpdateSelectorBtn, ДОСТУПНО ОБНОВЛЕНИЕ: V%LatestVersion%
     GuiControl, Settings:Show, UpdateSettingsBtn
-    GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
+    GuiControl, Settings:, UpdateSettingsBtn, ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion% - СКАЧАТЬ
 }
 
 ShowUpdateModal() {
-    global LatestVersion, CurrentVersion, RepoURL, UpdateModalVisible, hUpdateGui
+    global
     UpdateModalVisible := true
     Gui, UpdateModal:Destroy
     Gui, UpdateModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhUpdateGui
-    Gui, UpdateModal:Color, 0D1117, 161B26
-    
-    Gui, UpdateModal:Font, s13 c34D399 Bold, Segoe UI
-    Gui, UpdateModal:Add, Text, x20 y18 w480 Center, 🚀 ДОСТУПНА НОВАЯ ВЕРСИЯ СКРИПТА
-    
-    Gui, UpdateModal:Font, s10 cE2E8F0 Normal, Segoe UI
-    uMsg := "В официальном репозитории вышла версия: V" . LatestVersion . "`r`n`r`n"
-          . "У вас установлена версия: V" . CurrentVersion . "`r`n"
-          . "Рекомендуется обновиться для получения актуального законодательства и улучшений.`r`n"
-          . "Нажмите кнопку ниже для перехода к скачиванию."
-    Gui, UpdateModal:Add, Text, x25 y55 w470 h85 Center, %uMsg%
-    
+    Gui, UpdateModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, UpdateModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, UpdateModal:Add, Text, x0 y24 w520 Center, ДОСТУПНА НОВАЯ ВЕРСИЯ
+
+    Gui, UpdateModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
+    Gui, UpdateModal:Add, Text, x0 y58 w520 Center, Обновление скрипта памятки ДПС ГИБДД
+
+    Gui, UpdateModal:Font, s10 c%CLR_TEXT% Normal, Segoe UI
+    uMsg := "В официальном репозитории вышла версия: V" . LatestVersion . "`r`n"
+          . "У вас установлена версия: V" . CurrentVersion . "`r`n`r`n"
+          . "Рекомендуется обновиться для получения актуального`r`n"
+          . "законодательства и улучшений."
+    Gui, UpdateModal:Add, Text, x30 y98 w460 h80 Center, %uMsg%
+
     Gui, UpdateModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, UpdateModal:Add, Button, x40 y150 w240 h38 gOpenRepoUrl, 🌐 Открыть GitHub репозиторий
-    Gui, UpdateModal:Add, Button, x290 y150 w190 h38 gCloseUpdateModal, Позже
-    
-    Gui, UpdateModal:Show, w520 h215 Center, GIBDD_Update
+    Gui, UpdateModal:Add, Button, x40 y196 w240 h42 gOpenRepoUrl, Открыть GitHub
+    Gui, UpdateModal:Add, Button, x290 y196 w190 h42 gCloseUpdateModal, Позже
+
+    Gui, UpdateModal:Show, w520 h262 Center, GIBDD_Update
     WinActivate, ahk_id %hUpdateGui%
     DllCall("SetForegroundWindow", "Ptr", hUpdateGui)
     DllCall("SetWindowPos", "Ptr", hUpdateGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hUpdateGui, 520, 262, 18)
 }
 
 OpenRepoUrl:
@@ -262,43 +363,71 @@ ShowSettingsGui(savedKey) {
     global
     Gui, Settings:Destroy
     Gui, Settings:+AlwaysOnTop -MaximizeBox -MinimizeBox -Caption +Border
-    Gui, Settings:Color, 0D1117, 161B26
-    
-    Gui, Settings:Font, s14 c60A5FA Bold, Segoe UI
-    Gui, Settings:Add, Text, x20 y18 w410 Center, 🛡️ ПАМЯТКА ДПС ГИБДД КУТУЗОВСКИЙ
-    
-    Gui, Settings:Font, s9 c34D399 Bold, Segoe UI
-    Gui, Settings:Add, Text, x20 y44 w410 Center, [ ВЕРСИЯ 3.7 • РОССИЯ ОНЛАЙН ]
-    
+    Gui, Settings:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, Settings:Font, s16 c%CLR_TITLE% Bold, Segoe UI
+    Gui, Settings:Add, Text, x0 y18 w460 Center, ПАМЯТКА ДПС ГИБДД
+
+    Gui, Settings:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, Settings:Add, Text, x0 y48 w460 Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V3.8
+
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Settings:Add, Button, x25 y70 w400 h34 vUpdateSettingsBtn gOpenRepoUrl +Hidden, 🚀 ВЫШЛО ОБНОВЛЕНИЕ! СКАЧАТЬ
-    
-    Gui, Settings:Font, s10 cCBD5E1 Normal, Segoe UI
+    Gui, Settings:Add, Button, x30 y74 w400 h36 vUpdateSettingsBtn gOpenRepoUrl +Hidden, ВЫШЛО ОБНОВЛЕНИЕ - СКАЧАТЬ
+
+    Gui, Settings:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     if (savedKey == "NONE" || savedKey == "") {
-        Gui, Settings:Add, Text, x20 y112 w410 Center, Назначьте клавишу для открытия меню инспектора:
-        btnText := "💾 Сохранить и запустить"
+        Gui, Settings:Add, Text, x0 y118 w460 Center, Назначьте клавишу для открытия меню инспектора:
+        btnText := "Сохранить и запустить"
     } else {
-        Gui, Settings:Add, Text, x20 y110 w410 Center, Текущая клавиша вызова: [%savedKey%]`nВыберите новую клавишу или подтвердите запуск:
-        btnText := "⚡ Запустить помощник"
+        Gui, Settings:Add, Text, x0 y116 w460 Center, Текущая клавиша: [%savedKey%] | Выберите новую или подтвердите:
+        btnText := "Запустить помощник"
     }
-    
-    Gui, Settings:Font, s11 c0D1117 Bold, Segoe UI
-    Gui, Settings:Add, Hotkey, x85 y158 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
-    
+
+    Gui, Settings:Font, s11 cFFFFFF Bold, Segoe UI
+    Gui, Settings:Add, Hotkey, x90 y140 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
+
+    Gui, Settings:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, Settings:Add, Text, x0 y182 w460 Center, Выберите тему оформления скрипта:
+
+    themeChoices := ""
+    allThemes := ["Фиолетовый градиент", "Синий ДПС", "Темный графит", "Изумруд", "Кровавый рубин", "Янтарь"]
+    for idx, tName in allThemes
+    {
+        if (tName = CurrentTheme)
+            themeChoices .= tName . "||"
+        else
+            themeChoices .= tName . "|"
+    }
+
+    Gui, Settings:Font, s10 c000000 Normal, Segoe UI
+    Gui, Settings:Add, DropDownList, x90 y204 w280 vSelectedTheme gOnThemeDropdownChange, %themeChoices%
+
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Settings:Add, Button, x85 y202 w200 h36 gSaveAndStart, %btnText%
-    Gui, Settings:Add, Button, x292 y202 w73 h36 gManualCheckUpdate, 🔄 Обн.
-    
-    Gui, Settings:Font, s8 c94A3B8 Normal, Segoe UI
-    Gui, Settings:Add, Text, x20 y248 w410 Center vCheckStatusLabel, Закрытие окон в игре: [%CurrentHotkey%] или [ESC]
-    
+    Gui, Settings:Add, Button, x90 y252 w200 h40 gSaveAndStart, %btnText%
+    Gui, Settings:Add, Button, x297 y252 w73 h40 gManualCheckUpdate, ОБН.
+
+    Gui, Settings:Font, s8 c%CLR_MUTED% Normal, Segoe UI
+    Gui, Settings:Add, Text, x0 y304 w460 Center vCheckStatusLabel, Проверка обновлений...
+
     if (UpdateAvailable) {
         GuiControl, Settings:Show, UpdateSettingsBtn
-        GuiControl, Settings:, UpdateSettingsBtn, 🚀 ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion%! СКАЧАТЬ
+        GuiControl, Settings:, UpdateSettingsBtn, ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion% - СКАЧАТЬ
     }
-    
-    Gui, Settings:Show, w450 h280, Настройка биндера ГИБДД
+
+    Gui, Settings:Show, w460 h334, Настройка биндера ГИБДД
+    WinGet, hSet, ID, Настройка биндера ГИБДД
+    ApplyRoundedCorners(hSet, 460, 334, 18)
 }
+
+OnThemeDropdownChange:
+    Gui, Settings:Submit, NoHide
+    ApplyTheme(SelectedTheme)
+    IniWrite, %SelectedTheme%, %IniFile%, Settings, Theme
+    BuildOverlay()
+    BuildSelectorGui()
+    BuildTimerGui()
+    ShowSettingsGui(NewHotkey)
+return
 
 SaveAndStart:
     Gui, Settings:Submit
@@ -307,19 +436,19 @@ SaveAndStart:
         ShowSettingsGui(CurrentHotkey)
         return
     }
-    
     if (CurrentHotkey != "NONE" && CurrentHotkey != "") {
         try Hotkey, %CurrentHotkey%, Toggle, Off
     }
-    
     CurrentHotkey := NewHotkey
+    CurrentTheme := SelectedTheme
+    ApplyTheme(CurrentTheme)
     IniWrite, %CurrentHotkey%, %IniFile%, Settings, OpenKey
-    
+    IniWrite, %CurrentTheme%, %IniFile%, Settings, Theme
     Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
-    
-    TrayTip, ДПС ГИБДД Памятка, Биндер успешно запущен!`nКлавиша вызова: [%CurrentHotkey%], 3, 1
+    TrayTip, ДПС ГИБДД V3.8, Настройки сохранены!`nКлавиша: [%CurrentHotkey%] | Тема: %CurrentTheme%, 3, 1
     BuildOverlay()
     BuildSelectorGui()
+    BuildTimerGui()
     if (UpdateAvailable) {
         ApplyUpdateUI()
     }
@@ -332,56 +461,65 @@ BuildSelectorGui() {
     global
     Gui, Selector:Destroy
     Gui, Selector:+AlwaysOnTop +ToolWindow -Caption +LastFound +Border +HwndhSelectorGui
-    Gui, Selector:Color, 0D1117, 161B26
-    
+    Gui, Selector:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
     WinSet, Transparent, 250
-    
-    Gui, Selector:Font, s13 c60A5FA Bold, Segoe UI
-    Gui, Selector:Add, Text, x20 y16 w390 Center, 🛡️ СИСТЕМА ДПС ГИБДД
-    
-    Gui, Selector:Font, s9 c34D399 Bold, Segoe UI
-    Gui, Selector:Add, Text, x20 y40 w390 Center, [ БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА V3.7 ]
-    
+
+    Gui, Selector:Font, s16 c%CLR_TITLE% Bold, Segoe UI
+    Gui, Selector:Add, Text, x0 y18 w430 Center, СИСТЕМА ДПС ГИБДД
+
+    Gui, Selector:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, Selector:Add, Text, x0 y48 w430 Center, БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА  •  V3.8
+
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x25 y68 w380 h32 vUpdateSelectorBtn gOpenRepoUrl +Hidden, 🚀 ДОСТУПНО ОБНОВЛЕНИЕ
-    
+    Gui, Selector:Add, Button, x25 y76 w380 h34 vUpdateSelectorBtn gOpenRepoUrl +Hidden, ДОСТУПНО ОБНОВЛЕНИЕ
+
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x25 y106 w380 h38 gChoosePopular, ★ ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
-    Gui, Selector:Add, Button, x25 y148 w380 h38 gChooseAll, 📋 ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
-    
+    Gui, Selector:Add, Button, x25 y116 w380 h38 gChoosePopular, ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
+    Gui, Selector:Add, Button, x25 y158 w380 h38 gChooseAll, ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
+
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Selector:Add, Button, x25 y194 w185 h34 gChooseKoAP, 🚔 КоАП РО
-    Gui, Selector:Add, Button, x220 y194 w185 h34 gChooseUK, ⚖️ УК РО
-    
-    Gui, Selector:Add, Button, x25 y234 w185 h34 gChooseProc, 📑 Процессуальный кодекс
-    Gui, Selector:Add, Button, x220 y234 w185 h34 gChoosePDD, 🚦 ПДД РО
-    
-    Gui, Selector:Add, Button, x25 y274 w185 h34 gChoosePolice, 👮 ФЗ О Полиции
-    Gui, Selector:Add, Button, x220 y274 w185 h34 gChooseUstav, 🎖️ Устав ГИБДД
-    
-    Gui, Selector:Add, Button, x25 y316 w90 h34 gShowMiranda, ⚖ Права
-    Gui, Selector:Add, Button, x122 y316 w90 h34 gShowMegaphone, 📢 Рупор
-    Gui, Selector:Add, Button, x219 y316 w90 h34 gShowBailCalc, 💰 Залог
-    Gui, Selector:Add, Button, x315 y316 w90 h34 gShowRPBinder, 🚔 РП
-    
-    Gui, Selector:Add, Button, x25 y358 w380 h32 gShowRulesFromSelector, 📖 Регламент ст. 10 КоАП / Подследственность
-    
-    Gui, Selector:Font, s8 c94A3B8 Normal, Segoe UI
-    Gui, Selector:Add, Text, x20 y398 w390 Center, Закрыть: [%CurrentHotkey%] / [ESC] • Перемещение за фон
+    Gui, Selector:Add, Button, x25 y202 w185 h36 gChooseKoAP, КоАП РО
+    Gui, Selector:Add, Button, x220 y202 w185 h36 gChooseUK, УК РО
+
+    Gui, Selector:Add, Button, x25 y242 w185 h36 gChooseProc, Процессуальный кодекс
+    Gui, Selector:Add, Button, x220 y242 w185 h36 gChoosePDD, ПДД РО
+
+    Gui, Selector:Add, Button, x25 y282 w185 h36 gChoosePolice, ФЗ О Полиции
+    Gui, Selector:Add, Button, x220 y282 w185 h36 gChooseUstav, Устав ГИБДД
+
+    Gui, Selector:Add, Button, x25 y324 w90 h36 gShowMiranda, Права
+    Gui, Selector:Add, Button, x122 y324 w90 h36 gShowMegaphone, Рупор
+    Gui, Selector:Add, Button, x219 y324 w90 h36 gShowBailCalc, Залог
+    Gui, Selector:Add, Button, x315 y324 w90 h36 gShowRPBinder, РП
+
+    Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
+    Gui, Selector:Add, Button, x25 y366 w185 h36 gToggleTimerFromSelector, Таймер задержания
+    Gui, Selector:Add, Button, x220 y366 w185 h36 gShowForceStages, Стадии силы
+
+    Gui, Selector:Add, Button, x25 y408 w380 h34 gShowRulesFromSelector, Регламент ст. 10 КоАП / Подследственность
+
+    Gui, Selector:Font, s8 c%CLR_MUTED% Normal, Segoe UI
+    Gui, Selector:Add, Text, x0 y450 w430 Center, Закрыть: [%CurrentHotkey%] / [ESC]  •  Перемещение за фон
+
+    if (UpdateAvailable) {
+        GuiControl, Selector:Show, UpdateSelectorBtn
+        GuiControl, Selector:, UpdateSelectorBtn, ДОСТУПНО ОБНОВЛЕНИЕ: V%LatestVersion%
+    }
 }
 
 ToggleSelectionMenu:
-    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || RPBinderVisible || UpdateModalVisible) {
+    if (OverlayVisible || SelectorVisible || RulesVisible || MirandaVisible || MegaphoneVisible || BailVisible || RPBinderVisible || ForceVisible || UpdateModalVisible) {
         CloseAllWindows()
         return
     }
-    
     PrevGameHwnd := WinActive("A")
     SelectorVisible := true
-    Gui, Selector:Show, w430 h425 Center, GIBDD_Selector
+    Gui, Selector:Show, w430 h478 Center, GIBDD_Selector
     WinActivate, ahk_id %hSelectorGui%
     DllCall("SetForegroundWindow", "Ptr", hSelectorGui)
     DllCall("SetWindowPos", "Ptr", hSelectorGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hSelectorGui, 430, 478, 20)
 return
 
 ChoosePopular:
@@ -389,53 +527,51 @@ ChoosePopular:
     SelectorVisible := false
     OpenOverlayWithCategory(1)
 return
-
 ChooseAll:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(2)
 return
-
 ChooseKoAP:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(3)
 return
-
 ChooseUK:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(4)
 return
-
 ChooseProc:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(5)
 return
-
 ChoosePDD:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(6)
 return
-
 ChoosePolice:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(7)
 return
-
 ChooseUstav:
     Gui, Selector:Hide
     SelectorVisible := false
     OpenOverlayWithCategory(8)
 return
-
 ShowRulesFromSelector:
     Gui, Selector:Hide
     SelectorVisible := false
     Gosub, ShowRules
+return
+
+ToggleTimerFromSelector:
+    Gui, Selector:Hide
+    SelectorVisible := false
+    Gosub, ToggleTimerGui
 return
 
 OpenOverlayWithCategory(catNumber) {
@@ -443,13 +579,13 @@ OpenOverlayWithCategory(catNumber) {
     OverlayVisible := true
     Gui, Overlay:Default
     ActiveCategoryIndex := catNumber
-    GuiControl, Overlay:, SearchTerm, 
+    GuiControl, Overlay:, SearchTerm,
     Gosub, FilterArticles
-    
-    Gui, Overlay:Show, w1100 h640 Center, GIBDD_Overlay
+    Gui, Overlay:Show, w1120 h680 Center, GIBDD_Overlay
     WinActivate, ahk_id %hOverlayGui%
     DllCall("SetForegroundWindow", "Ptr", hOverlayGui)
     DllCall("SetWindowPos", "Ptr", hOverlayGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hOverlayGui, 1120, 680, 20)
     GuiControl, Overlay:Focus, SearchTerm
     DllCall("SetFocus", "Ptr", hSearchBox)
 }
@@ -463,6 +599,7 @@ CloseAllWindows() {
     MegaphoneVisible := false
     BailVisible := false
     RPBinderVisible := false
+    ForceVisible := false
     UpdateModalVisible := false
     Gui, Overlay:Hide
     Gui, Selector:Hide
@@ -471,6 +608,7 @@ CloseAllWindows() {
     Gui, MegaphoneModal:Hide
     Gui, BailModal:Hide
     Gui, RPBinderModal:Hide
+    Gui, ForceModal:Hide
     Gui, UpdateModal:Hide
     if (PrevGameHwnd) {
         WinActivate, ahk_id %PrevGameHwnd%
@@ -487,13 +625,20 @@ return
 Escape::
     CloseAllWindows()
 return
-
 Enter::
     Gosub, CopySelected
 return
-
 NumpadEnter::
     Gosub, CopySelected
+return
+Down::
+    GuiControlGet, focusedCtrl, Overlay:FocusV
+    if (focusedCtrl = "SearchTerm") {
+        GuiControl, Overlay:Focus, MyLV
+        LV_Modify(1, "Select Focus")
+    } else {
+        Send, {Down}
+    }
 return
 #IfWinExist
 
@@ -502,31 +647,31 @@ Escape::
     CloseAllWindows()
 return
 #IfWinExist
-
 #IfWinExist, GIBDD_Miranda
 Escape::
     CloseAllWindows()
 return
 #IfWinExist
-
 #IfWinExist, GIBDD_Megaphone
 Escape::
     CloseAllWindows()
 return
 #IfWinExist
-
 #IfWinExist, GIBDD_Bail
 Escape::
     CloseAllWindows()
 return
 #IfWinExist
-
 #IfWinExist, GIBDD_RP
 Escape::
     CloseAllWindows()
 return
 #IfWinExist
-
+#IfWinExist, GIBDD_Force
+Escape::
+    CloseAllWindows()
+return
+#IfWinExist
 #IfWinExist, GIBDD_Update
 Escape::
     CloseAllWindows()
@@ -537,67 +682,68 @@ BuildOverlay() {
     global
     Gui, Overlay:Destroy
     Gui, Overlay:+AlwaysOnTop +ToolWindow -Caption +LastFound +Border +HwndhOverlayGui
-    Gui, Overlay:Color, 0D1117, 161B26
+    Gui, Overlay:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
     Gui, Overlay:Default
-    
     ActiveCategoryIndex := 1
     WinSet, Transparent, 250
-    
-    Gui, Overlay:Font, s13 c60A5FA Bold, Segoe UI
-    Gui, Overlay:Add, Text, x25 y14 w310, 🛡️ ДПС ГИБДД КУТУЗОВСКИЙ
-    
-    Gui, Overlay:Font, s8 c34D399 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x340 y18 w70, [ V3.7 ]
-    
+
+    Gui, Overlay:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, Overlay:Add, Text, x25 y18 w360, ДПС ГИБДД КУТУЗОВСКИЙ
+
+    Gui, Overlay:Font, s8 c%CLR_SUCCESS% Bold, Segoe UI
+    Gui, Overlay:Add, Text, x390 y24 w70, [ V3.8 ]
+
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Overlay:Add, Button, x415 y12 w220 h28 vUpdateNoticeBtn gOpenRepoUrl +Hidden, 🚀 ОБНОВИТЬ СКРИПТ
-    
-    Gui, Overlay:Font, s9 c94A3B8 Normal, Segoe UI
-    Gui, Overlay:Add, Text, x655 y16 w420 Right, Закрыть: [%CurrentHotkey%] / [ESC] • Enter/Двойной клик: Копировать
-    
+    Gui, Overlay:Add, Button, x470 y16 w220 h30 vUpdateNoticeBtn gOpenRepoUrl +Hidden, ОБНОВИТЬ СКРИПТ
+
+    Gui, Overlay:Font, s9 c%CLR_MUTED% Normal, Segoe UI
+    Gui, Overlay:Add, Text, x700 y22 w400 Right, Закрыть: [%CurrentHotkey%] / [ESC]  •  Enter / 2xЛКМ: Копировать
+
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Overlay:Add, Button, x25 y48 w80 h28 gTabPop, ★ Топ
-    Gui, Overlay:Add, Button, x110 y48 w70 h28 gTabAll, Все
-    Gui, Overlay:Add, Button, x185 y48 w85 h28 gTabKoap, КоАП
-    Gui, Overlay:Add, Button, x275 y48 w80 h28 gTabUK, УК РО
-    Gui, Overlay:Add, Button, x360 y48 w80 h28 gTabPK, ПК РО
-    Gui, Overlay:Add, Button, x445 y48 w80 h28 gTabPDD, ПДД
-    Gui, Overlay:Add, Button, x530 y48 w95 h28 gTabPol, ФЗ О Полиции
-    Gui, Overlay:Add, Button, x630 y48 w80 h28 gTabUstav, Устав
-    
-    Gui, Overlay:Font, s9 c60A5FA Bold, Segoe UI
-    Gui, Overlay:Add, Button, x720 y48 w75 h28 gShowMiranda, ⚖ Права
-    Gui, Overlay:Add, Button, x800 y48 w80 h28 gShowMegaphone, 📢 Рупор
-    Gui, Overlay:Add, Button, x885 y48 w75 h28 gShowBailCalc, 💰 Залог
-    Gui, Overlay:Add, Button, x965 y48 w65 h28 gShowRPBinder, 🚔 РП
-    Gui, Overlay:Add, Button, x1035 y48 w40 h28 gOpenSettingsFromMenu, ⚙
-    
-    Gui, Overlay:Font, s9 cCBD5E1 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x25 y88 w55 h26 +0x200, 🔍 Поиск:
-    
+    Gui, Overlay:Add, Button, x25 y56 w70 h30 gTabPop, Топ
+    Gui, Overlay:Add, Button, x100 y56 w65 h30 gTabAll, Все
+    Gui, Overlay:Add, Button, x170 y56 w75 h30 gTabKoap, КоАП
+    Gui, Overlay:Add, Button, x250 y56 w75 h30 gTabUK, УК РО
+    Gui, Overlay:Add, Button, x330 y56 w75 h30 gTabPK, ПК РО
+    Gui, Overlay:Add, Button, x410 y56 w75 h30 gTabPDD, ПДД
+    Gui, Overlay:Add, Button, x490 y56 w105 h30 gTabPol, ФЗ Полиция
+    Gui, Overlay:Add, Button, x600 y56 w75 h30 gTabUstav, Устав
+
+    Gui, Overlay:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, Overlay:Add, Button, x680 y56 w70 h30 gShowMiranda, Права
+    Gui, Overlay:Add, Button, x755 y56 w70 h30 gShowMegaphone, Рупор
+    Gui, Overlay:Add, Button, x830 y56 w70 h30 gShowBailCalc, Залог
+    Gui, Overlay:Add, Button, x905 y56 w60 h30 gShowRPBinder, РП
+    Gui, Overlay:Add, Button, x970 y56 w85 h30 gToggleTimerGui, Таймер
+    Gui, Overlay:Add, Button, x1060 y56 w35 h30 gOpenSettingsFromMenu, О
+
+    Gui, Overlay:Font, s9 c%CLR_TEXT% Bold, Segoe UI
+    Gui, Overlay:Add, Text, x25 y100 w60 h28 +0x200, Поиск:
+
     Gui, Overlay:Font, s10 cFFFFFF Normal, Segoe UI
-    Gui, Overlay:Add, Edit, x85 y86 w370 h28 vSearchTerm gFilterArticles -E0x200 +Border +HwndhSearchBox, 
-    
+    Gui, Overlay:Add, Edit, x90 y98 w380 h30 vSearchTerm gFilterArticles -E0x200 +Border +HwndhSearchBox,
+
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Overlay:Add, Button, x462 y86 w34 h28 gClearSearch, ✕
-    Gui, Overlay:Add, Button, x504 y86 w140 h28 gCopySelected, 📋 Скопировать
-    Gui, Overlay:Add, Button, x650 y86 w165 h28 gShowRules, 📖 Регламент / Суд
-    
-    Gui, Overlay:Font, s8 c34D399 Bold, Segoe UI
-    Gui, Overlay:Add, Text, x825 y92 w250 h18 Right vCountLabel, Загрузка базы...
-    
-    Gui, Overlay:Font, s9 cE2E8F0 Normal, Segoe UI
-    Gui, Overlay:Add, ListView, x25 y122 w1050 h345 vMyLV gLVClick +AltSubmit -Multi +Grid Background161B26 cFFFFFF, Раздел|Статья / Пункт|Наказание / Санкция / Содержание
-    LV_ModifyCol(1, "130 Left")
-    LV_ModifyCol(2, "550 Left")
+    Gui, Overlay:Add, Button, x478 y98 w36 h30 gClearSearch, X
+    Gui, Overlay:Add, Button, x522 y98 w145 h30 gCopySelected, Скопировать
+    Gui, Overlay:Add, Button, x675 y98 w110 h30 gShowForceStages, Стадии силы
+    Gui, Overlay:Add, Button, x792 y98 w135 h30 gShowRules, Регламент
+
+    Gui, Overlay:Font, s8 c%CLR_SUCCESS% Bold, Segoe UI
+    Gui, Overlay:Add, Text, x935 y104 w160 h20 Right vCountLabel, Загрузка базы...
+
+    Gui, Overlay:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, Overlay:Add, ListView, x25 y140 w1070 h370 vMyLV gLVClick +AltSubmit -Multi +Grid Background%CLR_PANEL2% cFFFFFF, Раздел|Статья / Пункт|Наказание / Санкция / Содержание
+    LV_ModifyCol(1, "140 Left")
+    LV_ModifyCol(2, "560 Left")
     LV_ModifyCol(3, "360 Left")
-    
-    Gui, Overlay:Font, s9 c60A5FA Bold, Segoe UI
-    Gui, Overlay:Add, GroupBox, x25 y475 w1050 h145, 📌 КАРТОЧКА СТАТЬИ И САНКЦИИ:
-    
-    Gui, Overlay:Font, s10 cF1F5F9 Normal, Segoe UI
-    Gui, Overlay:Add, Edit, x38 y498 w1024 h110 vDetailBox ReadOnly -E0x200 +Multi Background0D1117 +Border, Выберите статью в списке выше (нажатие Enter или двойной клик копирует информацию в буфер обмена)...
-    
+
+    Gui, Overlay:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, Overlay:Add, GroupBox, x25 y520 w1070 h150, КАРТОЧКА СТАТЬИ И САНКЦИИ
+
+    Gui, Overlay:Font, s10 c%CLR_TEXT% Normal, Segoe UI
+    Gui, Overlay:Add, Edit, x38 y545 w1044 h110 vDetailBox ReadOnly -E0x200 +Multi Background%CLR_BG_TOP% +Border, Выберите статью в списке выше (Enter или двойной клик копирует информацию в буфер обмена)...
+
     Gosub, FilterArticles
 }
 
@@ -605,44 +751,37 @@ TabPop:
     ActiveCategoryIndex := 1
     Gosub, FilterArticles
 return
-
 TabAll:
     ActiveCategoryIndex := 2
     Gosub, FilterArticles
 return
-
 TabKoap:
     ActiveCategoryIndex := 3
     Gosub, FilterArticles
 return
-
 TabUK:
     ActiveCategoryIndex := 4
     Gosub, FilterArticles
 return
-
 TabPK:
     ActiveCategoryIndex := 5
     Gosub, FilterArticles
 return
-
 TabPDD:
     ActiveCategoryIndex := 6
     Gosub, FilterArticles
 return
-
 TabPol:
     ActiveCategoryIndex := 7
     Gosub, FilterArticles
 return
-
 TabUstav:
     ActiveCategoryIndex := 8
     Gosub, FilterArticles
 return
 
 ClearSearch:
-    GuiControl, Overlay:, SearchTerm, 
+    GuiControl, Overlay:, SearchTerm,
     Gosub, FilterArticles
     GuiControl, Overlay:Focus, SearchTerm
 return
@@ -652,12 +791,12 @@ FilterArticles:
     Gui, Overlay:Submit, NoHide
     GuiControl, Overlay:-Redraw, MyLV
     LV_Delete()
-    
+
     query := Trim(SearchTerm)
     catIndex := ActiveCategoryIndex
     matchCount := 0
     totalCount := ArticleDB.Length()
-    
+
     for index, item in ArticleDB
     {
         passCategory := false
@@ -685,7 +824,7 @@ FilterArticles:
             if (InStr(item.Category, "Устав"))
                 passCategory := true
         }
-        
+
         if (passCategory) {
             if (query == "" || InStr(item.Category, query) || InStr(item.Title, query) || InStr(item.Punish, query)) {
                 LV_Add("", item.Category, item.Title, item.Punish)
@@ -705,7 +844,7 @@ LVClick:
             LV_GetText(tCat, Row, 1)
             LV_GetText(tTitle, Row, 2)
             LV_GetText(tPunish, Row, 3)
-            infoText := "📁 РАЗДЕЛ:    " . tCat . "`r`n⚖️ СТАТЬЯ:    " . tTitle . "`r`n⚡ НАКАЗАНИЕ: " . tPunish
+            infoText := "РАЗДЕЛ:`t" . tCat . "`r`nСТАТЬЯ:`t" . tTitle . "`r`nНАКАЗАНИЕ:`t" . tPunish
             GuiControl, Overlay:, DetailBox, %infoText%
         }
     }
@@ -721,45 +860,47 @@ CopySelected:
         LV_GetText(tCat, Row, 1)
         LV_GetText(tTitle, Row, 2)
         LV_GetText(tPunish, Row, 3)
-        Clipboard := "[" . tCat . "] " . tTitle . " — Наказание: " . tPunish
-        TrayTip, ДПС ГИБДД, Статья скопирована в буфер обмена!, 2, 1
+        CopyToClip("[" . tCat . "] " . tTitle . " - Наказание: " . tPunish, "Статья скопирована!")
     }
 return
 
 ShowMiranda:
-    global MirandaVisible := true
+    MirandaVisible := true
     Gui, MirandaModal:Destroy
     Gui, MirandaModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMirandaGui
-    Gui, MirandaModal:Color, 0D1117, 161B26
-    
-    Gui, MirandaModal:Font, s12 c60A5FA Bold, Segoe UI
-    Gui, MirandaModal:Add, Text, x20 y16 w540 Center, ⚖️ ПРАВИЛО МИРАНДЫ (СТ. 6 ГЛ. II ПК РО)
-    
-    Gui, MirandaModal:Font, s10 cF1F5F9 Normal, Segoe UI
+    Gui, MirandaModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, MirandaModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, MirandaModal:Add, Text, x0 y20 w580 Center, ПРАВИЛО МИРАНДЫ
+
+    Gui, MirandaModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, MirandaModal:Add, Text, x0 y52 w580 Center, Статья 6 Главы II Процессуального кодекса РО
+
+    Gui, MirandaModal:Font, s11 c%CLR_TEXT% Normal, Segoe UI
     mText := "«Вы имеете право хранить молчание.`r`n"
           . "Всё, что вы скажете, может и будет использовано против Вас в суде.`r`n"
           . "Вы имеете право на один телефонный звонок.`r`n"
           . "Также Вы имеете право на адвоката.`r`n"
           . "Если вам необходим адвокат, он будет для Вас запрошен.`r`n`r`n"
           . "Вы понимаете свои права?»"
-    Gui, MirandaModal:Add, Text, x30 y52 w520 h130 Center, %mText%
-    
-    Gui, MirandaModal:Font, s9 c94A3B8 Normal, Segoe UI
-    Gui, MirandaModal:Add, Text, x20 y190 w540 Center, ⏱️ Звонок: до 3 минут в присутствии • ⚖️ Адвокат: встреча 10 минут наедине
-    
+    Gui, MirandaModal:Add, Text, x30 y88 w520 h140 Center, %mText%
+
+    Gui, MirandaModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
+    Gui, MirandaModal:Add, Text, x0 y240 w580 Center, Звонок: до 3 минут в присутствии  •  Адвокат: встреча 10 минут наедине
+
     Gui, MirandaModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, MirandaModal:Add, Button, x90 y225 w180 h36 gCopyMiranda, 📋 Скопировать текст
-    Gui, MirandaModal:Add, Button, x290 y225 w180 h36 gCloseMiranda, Закрыть
-    
-    Gui, MirandaModal:Show, w580 h280 Center, GIBDD_Miranda
+    Gui, MirandaModal:Add, Button, x90 y278 w190 h42 gCopyMiranda, Скопировать текст
+    Gui, MirandaModal:Add, Button, x300 y278 w190 h42 gCloseMiranda, Закрыть
+
+    Gui, MirandaModal:Show, w580 h340 Center, GIBDD_Miranda
     WinActivate, ahk_id %hMirandaGui%
     DllCall("SetForegroundWindow", "Ptr", hMirandaGui)
     DllCall("SetWindowPos", "Ptr", hMirandaGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hMirandaGui, 580, 340, 20)
 return
 
 CopyMiranda:
-    Clipboard := "Вы имеете право хранить молчание. Всё, что вы скажете, может и будет использовано против Вас в суде. Вы имеете право на один телефонный звонок. Также Вы имеете право на адвоката. Если вам необходим адвокат, он будет для Вас запрошен. Вы понимаете свои права?"
-    TrayTip, ДПС ГИБДД, Текст Миранды скопирован в буфер обмена!, 2, 1
+    CopyToClip("Вы имеете право хранить молчание. Всё, что вы скажете, может и будет использовано против Вас в суде. Вы имеете право на один телефонный звонок. Также Вы имеете право на адвоката. Если вам необходим адвокат, он будет для Вас запрошен. Вы понимаете свои права?", "Правило Миранды скопировано!")
 return
 
 CloseMiranda:
@@ -768,57 +909,62 @@ CloseMiranda:
 return
 
 ShowMegaphone:
-    global MegaphoneVisible := true
+    MegaphoneVisible := true
     Gui, MegaphoneModal:Destroy
     Gui, MegaphoneModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMegaphoneGui
-    Gui, MegaphoneModal:Color, 0D1117, 161B26
-    
-    Gui, MegaphoneModal:Font, s12 c60A5FA Bold, Segoe UI
-    Gui, MegaphoneModal:Add, Text, x20 y16 w610 Center, 📢 ТРЕБОВАНИЯ В МЕГАФОН (СТ. 6 ГЛ. XI ПК РО)
-    
-    Gui, MegaphoneModal:Font, s9 c60A5FA Bold, Segoe UI
-    Gui, MegaphoneModal:Add, GroupBox, x20 y45 w610 h75, 1-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ:
-    Gui, MegaphoneModal:Font, s9 cF1F5F9 Normal, Segoe UI
-    Gui, MegaphoneModal:Add, Text, x32 y65 w450 h45, Водитель ТС, прижмитесь к обочине и остановитесь! В противном случае к вам будут применены меры принудительной остановки!
+    Gui, MegaphoneModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, MegaphoneModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x0 y18 w660 Center, ТРЕБОВАНИЯ В МЕГАФОН
+
+    Gui, MegaphoneModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x0 y48 w660 Center, Статья 6 Главы XI Процессуального кодекса РО
+
+    Gui, MegaphoneModal:Add, GroupBox, x20 y75 w620 h74, 1-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ
+    Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x32 y95 w460 h46, Водитель ТС, прижмитесь к обочине и остановитесь! В противном случае будут применены меры принудительной остановки!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, MegaphoneModal:Add, Button, x495 y65 w120 h35 gCopyMega1, 📋 Скопировать
-    
-    Gui, MegaphoneModal:Font, s9 cF59E0B Bold, Segoe UI
-    Gui, MegaphoneModal:Add, GroupBox, x20 y128 w610 h75, 2-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ:
-    Gui, MegaphoneModal:Font, s9 cF1F5F9 Normal, Segoe UI
-    Gui, MegaphoneModal:Add, Text, x32 y148 w450 h45, Повторяю требование об остановке! Немедленно прижмитесь к обочине, заглушите двигатель и оставайтесь в автомобиле!
+    Gui, MegaphoneModal:Add, Button, x500 y93 w128 h38 gCopyMega1, Скопировать [1]
+
+    Gui, MegaphoneModal:Add, GroupBox, x20 y155 w620 h74, 2-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ
+    Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x32 y175 w460 h46, Повторяю требование об остановке! Немедленно прижмитесь к обочине, заглушите двигатель и оставайтесь в авто!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, MegaphoneModal:Add, Button, x495 y148 w120 h35 gCopyMega2, 📋 Скопировать
-    
-    Gui, MegaphoneModal:Font, s9 cEF4444 Bold, Segoe UI
-    Gui, MegaphoneModal:Add, GroupBox, x20 y211 w610 h75, 3-е ТРЕБОВАНИЕ (ФИНАЛЬНОЕ / ОГОНЬ):
-    Gui, MegaphoneModal:Font, s9 cF1F5F9 Normal, Segoe UI
-    Gui, MegaphoneModal:Add, Text, x32 y231 w450 h45, Это последнее предупреждение! В случае дальнейшего неподчинения будет открыт огонь по колесам и применен силовой таран!
+    Gui, MegaphoneModal:Add, Button, x500 y173 w128 h38 gCopyMega2, Скопировать [2]
+
+    Gui, MegaphoneModal:Add, GroupBox, x20 y235 w620 h74, 3-е ТРЕБОВАНИЕ (ФИНАЛЬНОЕ / ОГОНЬ)
+    Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x32 y255 w460 h46, Это последнее предупреждение! В случае неподчинения будет открыт огонь по колесам и применен силовой таран!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, MegaphoneModal:Add, Button, x495 y231 w120 h35 gCopyMega3, 📋 Скопировать
-    
+    Gui, MegaphoneModal:Add, Button, x500 y253 w128 h38 gCopyMega3, Скопировать [3]
+
+    Gui, MegaphoneModal:Add, GroupBox, x20 y315 w620 h74, ТРЕБОВАНИЕ ЗАГЛУШИТЬ ДВИГАТЕЛЬ
+    Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+    Gui, MegaphoneModal:Add, Text, x32 y335 w460 h46, Заглушите двигатель, положите руки на руль и приготовьте документы для проверки инспектором!
+    Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
+    Gui, MegaphoneModal:Add, Button, x500 y333 w128 h38 gCopyMega4, Скопировать [4]
+
     Gui, MegaphoneModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, MegaphoneModal:Add, Button, x235 y298 w180 h36 gCloseMegaphone, Закрыть
-    
-    Gui, MegaphoneModal:Show, w650 h350 Center, GIBDD_Megaphone
+    Gui, MegaphoneModal:Add, Button, x240 y400 w180 h38 gCloseMegaphone, Закрыть
+
+    Gui, MegaphoneModal:Show, w660 h450 Center, GIBDD_Megaphone
     WinActivate, ahk_id %hMegaphoneGui%
     DllCall("SetForegroundWindow", "Ptr", hMegaphoneGui)
     DllCall("SetWindowPos", "Ptr", hMegaphoneGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hMegaphoneGui, 660, 450, 20)
 return
 
 CopyMega1:
-    Clipboard := "/m [ГИБДД]: Водитель ТС, прижмитесь к обочине и остановитесь! В противном случае к вам будут применены меры принудительной остановки!"
-    TrayTip, ДПС ГИБДД, 1-е требование скопировано!, 2, 1
+    CopyToClip("/m [ГИБДД]: Водитель ТС, прижмитесь к обочине и остановитесь! В противном случае к вам будут применены меры принудительной остановки!", "1-е требование скопировано!")
 return
-
 CopyMega2:
-    Clipboard := "/m [ГИБДД]: Повторяю требование об остановке! Немедленно прижмитесь к обочине, заглушите двигатель и оставайтесь в авто!"
-    TrayTip, ДПС ГИБДД, 2-е требование скопировано!, 2, 1
+    CopyToClip("/m [ГИБДД]: Повторяю требование об остановке! Немедленно прижмитесь к обочине, заглушите двигатель и оставайтесь в авто!", "2-е требование скопировано!")
 return
-
 CopyMega3:
-    Clipboard := "/m [ГИБДД]: Это последнее предупреждение! В случае неподчинения будет открыт огонь по колесам и применен таран!"
-    TrayTip, ДПС ГИБДД, 3-е требование скопировано!, 2, 1
+    CopyToClip("/m [ГИБДД]: Это последнее предупреждение! В случае неподчинения будет открыт огонь по колесам и применен таран!", "3-е требование скопировано!")
+return
+CopyMega4:
+    CopyToClip("/m [ГИБДД]: Заглушите двигатель, положите руки на руль и приготовьте документы для проверки!", "Требование заглушить авто скопировано!")
 return
 
 CloseMegaphone:
@@ -827,37 +973,66 @@ CloseMegaphone:
 return
 
 ShowBailCalc:
-    global BailVisible := true
+    BailVisible := true
     Gui, BailModal:Destroy
     Gui, BailModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhBailGui
-    Gui, BailModal:Color, 0D1117, 161B26
-    
-    Gui, BailModal:Font, s12 c60A5FA Bold, Segoe UI
-    Gui, BailModal:Add, Text, x20 y16 w410 Center, 💰 КАЛЬКУЛЯТОР ЗАЛОГА (СТ. 5.10 УК РО)
-    
-    Gui, BailModal:Font, s9 c94A3B8 Normal, Segoe UI
-    Gui, BailModal:Add, Text, x20 y42 w410 Center, Сумма залога: 1 год (звезда) = 25 000 рублей
-    
+    Gui, BailModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, BailModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, BailModal:Add, Text, x0 y18 w460 Center, КАЛЬКУЛЯТОР ЗАЛОГА
+
+    Gui, BailModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, BailModal:Add, Text, x0 y48 w460 Center, Статья 5.10 УК РО  •  1 год = 25 000 рублей
+
+    Gui, BailModal:Font, s10 c%CLR_TEXT% Bold, Segoe UI
+    Gui, BailModal:Add, Text, x35 y86 w180 h28 +0x200, Срок ареста (лет):
+
+    Gui, BailModal:Font, s11 cFFFFFF Bold, Segoe UI
+    Gui, BailModal:Add, Edit, x220 y84 w200 h30 vBailYears gCalcBail -E0x200 +Border +Number, 1
+
+    Gui, BailModal:Font, s9 cFFFFFF Bold, Segoe UI
+    Gui, BailModal:Add, Button, x35 y122 w70 h28 gSetBail1, 1 год
+    Gui, BailModal:Add, Button, x115 y122 w70 h28 gSetBail2, 2 года
+    Gui, BailModal:Add, Button, x195 y122 w70 h28 gSetBail3, 3 года
+    Gui, BailModal:Add, Button, x275 y122 w70 h28 gSetBail4, 4 года
+    Gui, BailModal:Add, Button, x350 y122 w70 h28 gSetBail5, 5 лет
+
+    Gui, BailModal:Font, s12 c%CLR_SUCCESS% Bold, Segoe UI
+    Gui, BailModal:Add, Text, x0 y160 w460 Center vBailResult, Итоговая сумма: 25 000 руб
+
+    Gui, BailModal:Font, s8 c%CLR_MUTED% Normal, Segoe UI
+    Gui, BailModal:Add, Text, x0 y190 w460 Center, Залог не применяется по статьям с судимостью (от 4 звезд)
+
     Gui, BailModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, BailModal:Add, Text, x40 y80 w190 h26 +0x200, Срок ареста (лет / звезд):
-    
-    Gui, BailModal:Font, s11 c0D1117 Bold, Segoe UI
-    Gui, BailModal:Add, Edit, x240 y78 w160 h28 vBailYears gCalcBail -E0x200 +Border +Number, 1
-    
-    Gui, BailModal:Font, s11 c34D399 Bold, Segoe UI
-    Gui, BailModal:Add, Text, x20 y120 w410 Center vBailResult, Итоговая сумма: 25 000 руб
-    
-    Gui, BailModal:Font, s8 c94A3B8 Normal, Segoe UI
-    Gui, BailModal:Add, Text, x20 y148 w410 Center, ⚠️ Залог не применяется по статьям с судимостью (от 4 звезд)
-    
-    Gui, BailModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, BailModal:Add, Button, x65 y180 w150 h36 gCopyBailSum, 📋 Скопировать
-    Gui, BailModal:Add, Button, x235 y180 w150 h36 gCloseBail, Закрыть
-    
-    Gui, BailModal:Show, w450 h235 Center, GIBDD_Bail
+    Gui, BailModal:Add, Button, x70 y218 w150 h38 gCopyBailSum, Скопировать
+    Gui, BailModal:Add, Button, x240 y218 w150 h38 gCloseBail, Закрыть
+
+    Gui, BailModal:Show, w460 h274 Center, GIBDD_Bail
     WinActivate, ahk_id %hBailGui%
     DllCall("SetForegroundWindow", "Ptr", hBailGui)
     DllCall("SetWindowPos", "Ptr", hBailGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hBailGui, 460, 274, 20)
+return
+
+SetBail1:
+    GuiControl, BailModal:, BailYears, 1
+    Gosub, CalcBail
+return
+SetBail2:
+    GuiControl, BailModal:, BailYears, 2
+    Gosub, CalcBail
+return
+SetBail3:
+    GuiControl, BailModal:, BailYears, 3
+    Gosub, CalcBail
+return
+SetBail4:
+    GuiControl, BailModal:, BailYears, 4
+    Gosub, CalcBail
+return
+SetBail5:
+    GuiControl, BailModal:, BailYears, 5
+    Gosub, CalcBail
 return
 
 CalcBail:
@@ -875,8 +1050,7 @@ CopyBailSum:
     Gui, BailModal:Submit, NoHide
     val := BailYears + 0
     total := val * 25000
-    Clipboard := "Сумма освобождения под залог по ст. 5.10 УК РО составляет " . total . " рублей."
-    TrayTip, ДПС ГИБДД, Сумма залога скопирована в буфер обмена!, 2, 1
+    CopyToClip("Сумма освобождения под залог по ст. 5.10 УК РО составляет " . total . " рублей.", "Сумма залога скопирована!")
 return
 
 CloseBail:
@@ -885,64 +1059,81 @@ CloseBail:
 return
 
 ShowRPBinder:
-    global RPBinderVisible := true
+    RPBinderVisible := true
     Gui, RPBinderModal:Destroy
     Gui, RPBinderModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRPGui
-    Gui, RPBinderModal:Color, 0D1117, 161B26
-    
-    Gui, RPBinderModal:Font, s12 c60A5FA Bold, Segoe UI
-    Gui, RPBinderModal:Add, Text, x20 y16 w580 Center, 🚔 БЫСТРЫЕ RP-ОТЫГРОВКИ ДПС ГИБДД
-    
-    Gui, RPBinderModal:Font, s9 c94A3B8 Normal, Segoe UI
-    Gui, RPBinderModal:Add, Text, x20 y40 w580 Center, Нажмите на любую кнопку — текст будет скопирован в буфер обмена:
-    
+    Gui, RPBinderModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, RPBinderModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, RPBinderModal:Add, Text, x0 y18 w620 Center, БЫСТРЫЕ RP-ОТЫГРОВКИ ДПС ГИБДД
+
+    Gui, RPBinderModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
+    Gui, RPBinderModal:Add, Text, x0 y48 w620 Center, Нажмите для копирования отыгровки в буфер обмена
+
     Gui, RPBinderModal:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, RPBinderModal:Add, Button, x30 y70 w265 h36 gRPDoc, 🪪 Предъявить удостоверение
-    Gui, RPBinderModal:Add, Button, x305 y70 w265 h36 gRPCuff, ⛓ Надеть наручники
-    
-    Gui, RPBinderModal:Add, Button, x30 y114 w265 h36 gRPKpk, 💻 Проверка по базе КПК
-    Gui, RPBinderModal:Add, Button, x305 y114 w265 h36 gRPFrisk, 🧤 Первичный обыск
-    
-    Gui, RPBinderModal:Add, Button, x30 y158 w265 h36 gRPAlco, 🧪 Алкотестер
-    Gui, RPBinderModal:Add, Button, x305 y158 w265 h36 gRPProtocol, 📝 Протокол КоАП
-    
+    Gui, RPBinderModal:Add, Button, x25 y78 w275 h38 gRPDoc, 1. Предъявить удостоверение
+    Gui, RPBinderModal:Add, Button, x320 y78 w275 h38 gRPStopSign, 2. Остановка жезлом ДПС
+
+    Gui, RPBinderModal:Add, Button, x25 y122 w275 h38 gRPReqDocs, 3. Запрос В/У и документов
+    Gui, RPBinderModal:Add, Button, x320 y122 w275 h38 gRPKpk, 4. Проверка гражданина по КПК
+
+    Gui, RPBinderModal:Add, Button, x25 y166 w275 h38 gRPAlco, 5. Освидетельствование (Алко)
+    Gui, RPBinderModal:Add, Button, x320 y166 w275 h38 gRPFrisk, 6. Первичный досмотр
+
+    Gui, RPBinderModal:Add, Button, x25 y210 w275 h38 gRPCuff, 7. Надеть наручники
+    Gui, RPBinderModal:Add, Button, x320 y210 w275 h38 gRPInCar, 8. Посадить в патруль (/incar)
+
+    Gui, RPBinderModal:Add, Button, x25 y254 w275 h38 gRPEject, 9. Высадить из авто (/eject)
+    Gui, RPBinderModal:Add, Button, x320 y254 w275 h38 gRPProtocol, 10. Протокол КоАП (штраф)
+
+    Gui, RPBinderModal:Add, Button, x25 y298 w275 h38 gRPTow, 11. Эвакуация на штрафстоянку
+    Gui, RPBinderModal:Add, Button, x320 y298 w275 h38 gRPArrest, 12. Помещение в ИВС (/arrest)
+
     Gui, RPBinderModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, RPBinderModal:Add, Button, x210 y210 w200 h36 gCloseRPBinder, Закрыть
-    
-    Gui, RPBinderModal:Show, w600 h265 Center, GIBDD_RP
+    Gui, RPBinderModal:Add, Button, x220 y350 w180 h38 gCloseRPBinder, Закрыть
+
+    Gui, RPBinderModal:Show, w620 h404 Center, GIBDD_RP
     WinActivate, ahk_id %hRPGui%
     DllCall("SetForegroundWindow", "Ptr", hRPGui)
     DllCall("SetWindowPos", "Ptr", hRPGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hRPGui, 620, 404, 20)
 return
 
 RPDoc:
-    Clipboard := "/do Служебное удостоверение сотрудника ГИБДД находится в нагрудном кармане.`n/me резким движением руки достал удостоверение и показал гражданину в развернутом виде"
-    TrayTip, ДПС ГИБДД, Отыгровка удостоверения скопирована!, 2, 1
+    CopyToClip("/do Служебное удостоверение инспектора ГИБДД находится в нагрудном кармане.`n/me резким движением достал удостоверение и показал гражданину в развернутом виде`n/do В удостоверении указаны звание, должность и подразделение ГИБДД.", "Отыгровка удостоверения скопирована!")
 return
-
-RPCuff:
-    Clipboard := "/me снял наручники с поясного держателя, затем завел руки задержанного за спину и защелкнул браслеты"
-    TrayTip, ДПС ГИБДД, Отыгровка наручников скопирована!, 2, 1
+RPStopSign:
+    CopyToClip("/me вытянул руку с регулировочным диском-жезлом вперед, указав водителю на обочину дороги`n/do Инспектор жестом руки приказал остановиться и прижаться вправо.", "Остановка жезлом скопирована!")
 return
-
+RPReqDocs:
+    CopyToClip("Здравия желаю. Инспектор ДПС ГИБДД.`nПожалуйста, заглушите автомобиль и предъявите Ваше водительское удостоверение и СТС.", "Запрос документов скопирован!")
+return
 RPKpk:
-    Clipboard := "/me снял служебный КПК с поясного держателя, включил его и вошел в единую базу данных МВД`n/me ввел персональные данные гражданина, после чего проверил информацию на наличие розыска"
-    TrayTip, ДПС ГИБДД, Отыгровка КПК скопирована!, 2, 1
+    CopyToClip("/me снял служебный КПК с поясного держателя, включил экран и перешел в единую базу МВД`n/me ввел серию и номер документа, после чего начал проверку по ориентировкам и неоплаченным штрафам", "Проверка КПК скопирована!")
 return
-
-RPFrisk:
-    Clipboard := "/me надел одноразовые резиновые перчатки, затем провел руками по верхним и нижним карманам гражданина`n/do В ходе первичного досмотра были обнаружены личные вещи и предметы."
-    TrayTip, ДПС ГИБДД, Отыгровка первичного обыска скопирована!, 2, 1
-return
-
 RPAlco:
-    Clipboard := "/me достал портативный алкотестер из подсумка, вскрыл одноразовый мундштук и установил его в прибор`n/me включил прибор и протянул водителю со словами: «Сделайте глубокий выдох в мундштук»"
-    TrayTip, ДПС ГИБДД, Отыгровка алкотестера скопирована!, 2, 1
+    CopyToClip("/me расстегнул боковой подсумок, извлек сертифицированный алкотестер и вскрыл одноразовый мундштук`n/me установил мундштук в прибор, включил тест и протянул устройство водителю`nСделайте один глубокий плавный выдох в мундштук до звукового сигнала прибора.", "Отыгровка алкотестера скопирована!")
 return
-
+RPFrisk:
+    CopyToClip("/me надел одноразовые резиновые перчатки, затем провел руками по верхней одежде и карманам гражданина`n/do В ходе поверхностного досмотра были проверены личные вещи на предмет запрещенных средств.", "Первичный досмотр скопирован!")
+return
+RPCuff:
+    CopyToClip("/me снял металлические наручники с поясного крепления`n/me завел руки нарушителя за спину и аккуратно защелкнул браслеты на обоих запястьях", "Наручники скопированы!")
+return
+RPInCar:
+    CopyToClip("/me открыл заднюю пассажирскую дверь служебного автомобиля`n/me придерживая задержанного за плечо и голову, посадил его на заднее сиденье и закрыл дверь", "Посадка в авто скопирована!")
+return
+RPEject:
+    CopyToClip("/me открыл дверь патрульного автомобиля, удерживая гражданина за плечо, помог ему выйти наружу", "Высадка из авто скопирована!")
+return
 RPProtocol:
-    Clipboard := "/me достал бланк протокола об административном правонарушении и шариковую ручку из планшета`n/me внес данные нарушителя, место и статью совершенного правонарушения, затем поставил личную подпись"
-    TrayTip, ДПС ГИБДД, Отыгровка протокола скопирована!, 2, 1
+    CopyToClip("/me открыл служебную папку, достал бланк протокола об административном правонарушении и ручку`n/me внес персональные данные, дату, место и квалификацию правонарушения, после чего поставил подпись", "Протокол КоАП скопирован!")
+return
+RPTow:
+    CopyToClip("/me достал пульт управления лебедкой эвакуатора, закрепил буксировочные тросы за шасси автомобиля`n/me активировал подъемник и аккуратно погрузил задержанное транспортное средство на платформу", "Эвакуация скопирована!")
+return
+RPArrest:
+    CopyToClip("/me открыл металлическую решетку камеры временного содержания`n/me завел задержанного в камеру ИВС, закрыл дверь на замок и передал протокол дежурному офицеру", "Передача в ИВС скопирована!")
 return
 
 CloseRPBinder:
@@ -950,36 +1141,186 @@ CloseRPBinder:
     RPBinderVisible := false
 return
 
+ShowForceStages:
+    ForceVisible := true
+    Gui, ForceModal:Destroy
+    Gui, ForceModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhForceGui
+    Gui, ForceModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, ForceModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, ForceModal:Add, Text, x0 y18 w620 Center, СТАДИИ ПРИМЕНЕНИЯ СИЛЫ И ОРУЖИЯ
+
+    Gui, ForceModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, ForceModal:Add, Text, x0 y48 w620 Center, Глава XI Процессуального кодекса РО  •  ФЗ О Полиции
+
+    Gui, ForceModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
+
+    Gui, ForceModal:Add, Text, x30 y82 w560 h38, 1. ПРИСУТСТВИЕ СОТРУДНИКА — нахождение сотрудника в форме и служебном авто. Предостерегает от нарушений одним лишь присутствием.
+    Gui, ForceModal:Add, Text, x30 y124 w560 h38, 2. УСТНЫЕ ТРЕБОВАНИЯ — законные, понятные распоряжения сотрудника полиции. Предупреждение о последствиях неподчинения.
+    Gui, ForceModal:Add, Text, x30 y166 w560 h38, 3. ФИЗИЧЕСКАЯ СИЛА — применение боевых приемов, захватов и заломов для преодоления физического сопротивления нарушителя.
+    Gui, ForceModal:Add, Text, x30 y208 w560 h38, 4. СПЕЦСРЕДСТВА (Тазер, дубинка, наручники) — применяются при активном сопротивлении, побеге или групповых беспорядках.
+    Gui, ForceModal:Add, Text, x30 y250 w560 h48, 5. СМЕРТЕЛЬНАЯ СИЛА (Огнестрельное оружие) — применяется ИСКЛЮЧИТЕЛЬНО при реальной и непосредственной угрозе жизни граждан или сотрудников. Предупредительные выстрелы запрещены!
+
+    Gui, ForceModal:Font, s10 cFFFFFF Bold, Segoe UI
+    Gui, ForceModal:Add, Button, x220 y308 w180 h38 gCloseForceStages, Закрыть
+
+    Gui, ForceModal:Show, w620 h362 Center, GIBDD_Force
+    WinActivate, ahk_id %hForceGui%
+    DllCall("SetForegroundWindow", "Ptr", hForceGui)
+    DllCall("SetWindowPos", "Ptr", hForceGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hForceGui, 620, 362, 20)
+return
+
+CloseForceStages:
+    Gui, ForceModal:Hide
+    ForceVisible := false
+return
+
+BuildTimerGui() {
+    global
+    Gui, ProcTimer:Destroy
+    Gui, ProcTimer:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhTimerGui
+    Gui, ProcTimer:Color, %CLR_PANEL%, %CLR_PANEL2%
+
+    Gui, ProcTimer:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, ProcTimer:Add, Text, x10 y8 w220 Center, ТАЙМЕР ЗАДЕРЖАНИЯ
+
+    Gui, ProcTimer:Font, s16 c%CLR_TITLE% Bold, Consolas
+    Gui, ProcTimer:Add, Text, x10 y30 w220 Center vTimerDisplay, 00:00
+
+    Gui, ProcTimer:Font, s8 c%CLR_MUTED% Normal, Segoe UI
+    Gui, ProcTimer:Add, Text, x10 y60 w220 Center vTimerStatusLabel, Режим: Не задан
+
+    Gui, ProcTimer:Font, s8 cFFFFFF Bold, Segoe UI
+    Gui, ProcTimer:Add, Button, x10 y86 w68 h26 gSetTimerAdv, 10м Адв
+    Gui, ProcTimer:Add, Button, x86 y86 w68 h26 gSetTimerJudge, 15м Суд
+    Gui, ProcTimer:Add, Button, x162 y86 w68 h26 gSetTimerHour, 60м Час
+
+    Gui, ProcTimer:Add, Button, x10 y118 w104 h26 gToggleTimerRunning, Старт / Пауза
+    Gui, ProcTimer:Add, Button, x126 y118 w104 h26 gResetTimer, Сбросить
+
+    Gui, ProcTimer:Font, s8 c%CLR_DANGER% Bold, Segoe UI
+    Gui, ProcTimer:Add, Button, x10 y150 w220 h24 gHideTimerGui, Закрыть таймер
+}
+
+ToggleTimerGui:
+    if (TimerGuiVisible) {
+        Gui, ProcTimer:Hide
+        TimerGuiVisible := false
+    } else {
+        BuildTimerGui()
+        Gui, ProcTimer:Show, x30 y180 w240 h184 NoActivate, GIBDD_Timer
+        TimerGuiVisible := true
+        ApplyRoundedCorners(hTimerGui, 240, 184, 14)
+        Gosub, UpdateTimerLabel
+    }
+return
+
+HideTimerGui:
+    Gui, ProcTimer:Hide
+    TimerGuiVisible := false
+return
+
+SetTimerAdv:
+    TimerRemaining := 600
+    TimerModeName := "Адвокат (10 мин)"
+    TimerActive := true
+    SetTimer, TimerTick, 1000
+    Gosub, UpdateTimerLabel
+return
+
+SetTimerJudge:
+    TimerRemaining := 900
+    TimerModeName := "Судья/Прок (15 мин)"
+    TimerActive := true
+    SetTimer, TimerTick, 1000
+    Gosub, UpdateTimerLabel
+return
+
+SetTimerHour:
+    TimerRemaining := 3600
+    TimerModeName := "Проц. час (60 мин)"
+    TimerActive := true
+    SetTimer, TimerTick, 1000
+    Gosub, UpdateTimerLabel
+return
+
+ToggleTimerRunning:
+    if (TimerRemaining <= 0)
+        return
+    TimerActive := !TimerActive
+    if (TimerActive)
+        SetTimer, TimerTick, 1000
+    else
+        SetTimer, TimerTick, Off
+    Gosub, UpdateTimerLabel
+return
+
+ResetTimer:
+    TimerActive := false
+    SetTimer, TimerTick, Off
+    TimerRemaining := 0
+    TimerModeName := "Не задан"
+    Gosub, UpdateTimerLabel
+return
+
+TimerTick:
+    if (!TimerActive)
+        return
+    if (TimerRemaining > 0) {
+        TimerRemaining--
+        Gosub, UpdateTimerLabel
+    } else {
+        TimerActive := false
+        SetTimer, TimerTick, Off
+        Gosub, UpdateTimerLabel
+        SoundPlay, *16
+        MsgBox, 48, Внимание ДПС ГИБДД, Время по таймеру истекло! (%TimerModeName%)
+    }
+return
+
+UpdateTimerLabel:
+    m := Floor(TimerRemaining / 60)
+    s := Mod(TimerRemaining, 60)
+    strM := (m < 10) ? "0" . m : m
+    strS := (s < 10) ? "0" . s : s
+    timeStr := strM . ":" . strS
+    GuiControl, ProcTimer:, TimerDisplay, %timeStr%
+    statusText := TimerActive ? TimerModeName . " [ИДЕТ]" : TimerModeName . " [ПАУЗА]"
+    GuiControl, ProcTimer:, TimerStatusLabel, %statusText%
+return
+
 ShowRules:
-    global RulesVisible := true
+    RulesVisible := true
     Gui, RulesModal:Destroy
     Gui, RulesModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRulesGui
-    Gui, RulesModal:Color, 0D1117, 161B26
-    
-    Gui, RulesModal:Font, s12 c60A5FA Bold, Segoe UI
-    Gui, RulesModal:Add, Text, x25 y16 w570, 📖 ПРИМЕЧАНИЯ И РЕГЛАМЕНТ ДПС
-    
-    Gui, RulesModal:Font, s9 c60A5FA Bold, Segoe UI
-    Gui, RulesModal:Add, GroupBox, x25 y46 w570 h125, 1. РЕГЛАМЕНТ СТАТЬИ 10 КоАП (ОТКАЗ ОТ ШТРАФА):
-    
-    Gui, RulesModal:Font, s9 cE2E8F0 Normal, Segoe UI
+    Gui, RulesModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
+
+    Gui, RulesModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
+    Gui, RulesModal:Add, Text, x25 y20 w570, ПРИМЕЧАНИЯ И РЕГЛАМЕНТ ДПС
+
+    Gui, RulesModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, RulesModal:Add, GroupBox, x25 y52 w570 h130, 1. РЕГЛАМЕНТ СТАТЬИ 10 КоАП (ОТКАЗ ОТ ШТРАФА)
+
+    Gui, RulesModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     rText1 := "За нарушение ст. 10 КоАП задержанного необходимо отвозить в здание Правительства.`r`nДалее туда же вызываем сотрудника МВД для передачи процессуальных действий и судью через канал в Discord фракции.`r`nЕсли судья не приедет в течение 15 минут — задержанного необходимо отпустить, а материалы дела направить в суд."
-    Gui, RulesModal:Add, Text, x38 y70 w544 h90, %rText1%
-    
-    Gui, RulesModal:Font, s9 c60A5FA Bold, Segoe UI
-    Gui, RulesModal:Add, GroupBox, x25 y180 w570 h120, 2. ПОДСЛЕДСТВЕННОСТЬ СТРУКТУР (КУДА ВЕЗТИ):
-    
-    Gui, RulesModal:Font, s10 c34D399 Bold, Consolas
+    Gui, RulesModal:Add, Text, x38 y78 w544 h95, %rText1%
+
+    Gui, RulesModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
+    Gui, RulesModal:Add, GroupBox, x25 y190 w570 h125, 2. ПОДСЛЕДСТВЕННОСТЬ СТРУКТУР (КУДА ВЕЗТИ)
+
+    Gui, RulesModal:Font, s10 c%CLR_SUCCESS% Bold, Consolas
     rText2 := "Ф  ->  ФСБ`r`nС  ->  Следственный комитет`r`nР  ->  МВД (основное место доставки ДПС)`r`nВ  ->  Военная полиция / Армия"
-    Gui, RulesModal:Add, Text, x40 y205 w540 h85, %rText2%
-    
+    Gui, RulesModal:Add, Text, x40 y216 w540 h90, %rText2%
+
     Gui, RulesModal:Font, s10 cFFFFFF Bold, Segoe UI
-    Gui, RulesModal:Add, Button, x210 y315 w200 h36 gCloseRules, Закрыть
-    
-    Gui, RulesModal:Show, w620 h365 Center, GIBDD_Rules
+    Gui, RulesModal:Add, Button, x210 y330 w200 h42 gCloseRules, Закрыть
+
+    Gui, RulesModal:Show, w620 h390 Center, GIBDD_Rules
     WinActivate, ahk_id %hRulesGui%
     DllCall("SetForegroundWindow", "Ptr", hRulesGui)
     DllCall("SetWindowPos", "Ptr", hRulesGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
+    ApplyRoundedCorners(hRulesGui, 620, 390, 20)
 return
 
 CloseRules:
@@ -1000,7 +1341,7 @@ return
 InitDatabase() {
     global ArticleDB := []
 
-    k1 = 
+    k1 =
     (
 КоАП РО|Статья 1.1. Законодательство об административных правонарушениях|Состоит из Кодекса и федеральных законов; подзаконные акты не вводят наказаний|0
 КоАП РО|Статья 1.2. Задачи законодательства об административных правонарушениях|Защита прав, свобод, собственности, правопорядка и общественной безопасности|0
@@ -1015,7 +1356,7 @@ InitDatabase() {
 КоАП РО|Статья 3.3. Разграничение с преступлением|При признаках преступления адм. производство прекращается и передается в СК/МВД|0
 КоАП РО|Статья 4.1. Крайняя необходимость|Причинение меньшего вреда для устранения непосредственно угрожающей опасности|0
 КоАП РО|Статья 4.2. Правомерное осуществление полномочий|Действия в пределах прямо предоставленных законом прав не являются правонарушением|0
-КоАП РО|Статья 5.1. Малозначительность правонарушения|Возможность освобождения от ответственности с объявлением устного замечания|0
+КоАП РО|Статья 5.1. Малозначительность правонарушения|Возвозможность освобождения от ответственности с объявлением устного замечания|0
 КоАП РО|Статья 6.1. Цели административного наказания|Восстановление нарушенного правопорядка и предупреждение совершения новых деяний|0
 КоАП РО|Статья 6.2. Виды административных наказаний|Предупреждение, штраф, арест, конфискация, лишение права, приостановление|0
 КоАП РО|Статья 6.3. Предупреждение|Официальное порицание за впервые совершенное малозначительное деяние|0
@@ -1030,7 +1371,7 @@ InitDatabase() {
     )
     LoadData(k1)
 
-    k2 = 
+    k2 =
     (
 КоАП РО|Статья 7.4. Несколько правонарушений|Наказание назначается за каждое деяние без превышения пределов Кодекса|0
 КоАП РО|Статья 8.1. Давность привлечения к ответственности|Срок давности составляет 5 календарных дней со дня совершения правонарушения|0
@@ -1060,7 +1401,7 @@ InitDatabase() {
     )
     LoadData(k2)
 
-    k3 = 
+    k3 =
     (
 КоАП РО|Статья 20. Нарушение режима чрезвычайного или военного положения|Штраф от 20.000 до 50.000 рублей либо арест до 10 суток с конфискацией|0
 КоАП РО|Статья 21. Угроза причинением вреда, не образующая преступления|Штраф от 15.000 до 30.000 рублей|0
@@ -1090,7 +1431,7 @@ InitDatabase() {
     )
     LoadData(k3)
 
-    k4 = 
+    k4 =
     (
 КоАП РО|Статья 41.2. Ненадлежащее исполнение должностных обязанностей|Штраф должностному лицу от 20.000 до 60.000 рублей (Прокуратура)|0
 КоАП РО|Статья 42.1. Исполнение государственной службы в состоянии наркотического опьянения|Штраф от 40.000 до 80.000 рублей (Прокуратура)|0
@@ -1120,7 +1461,7 @@ InitDatabase() {
     )
     LoadData(k4)
 
-    k5 = 
+    k5 =
     (
 КоАП РО|Статья 55. ч.1. Невыполнение обязанностей в связи с ДТП (не остановился, не выставил знак)|Штраф от 5.000 до 15.000 рублей|0
 КоАП РО|Статья 55. ч.2. Неоказание первой помощи либо невызов скорой при ДТП с пострадавшими|Штраф от 15.000 до 30.000 рублей|0
@@ -1154,7 +1495,7 @@ InitDatabase() {
     )
     LoadData(k5)
 
-    u1 = 
+    u1 =
     (
 УК РО|Статья 1. Уголовное законодательство РО|Состоит из настоящего Кодекса на основе Конституции РО|0
 УК РО|Статья 1.1. Задачи Уголовного кодекса РО|Охрана прав, свобод, правопорядка, безопасности и предупреждение преступлений|0
@@ -1184,10 +1525,10 @@ InitDatabase() {
     )
     LoadData(u1)
 
-    u2 = 
+    u2 =
     (
 УК РО|Статья 3.6. Совершение преступления группой лиц, по сговору, ОПГ, ОПС|Влечет более строгое наказание в пределах, предусмотренных УК|0
-УК РО|Статья 3.7. Эксцесс исполнителя преступления|Совершение исполнителем деяния, не охваченного умыслом остальных соучастников|0
+УК РО|Статья 3.8. Эксцесс исполнителя преступления|Совершение исполнителем деяния, не охваченного умыслом остальных соучастников|0
 УК РО|Статья 4. Необходимая оборона|Защита от опасного для жизни насилия; самооборона в жилище правомерна|0
 УК РО|Статья 4.1. Причинение вреда при задержании лица, совершившего преступление|Правомерный вред для доставления в органы власти при соразмерности|0
 УК РО|Статья 4.2. Крайняя необходимость|Устранение опасности причинением меньшего вреда, если иной путь невозможен|0
@@ -1214,7 +1555,7 @@ InitDatabase() {
     )
     LoadData(u2)
 
-    u3 = 
+    u3 =
     (
 УК РО|Статья 6.2 (Ф/Р) Убийство или причинение тяжких телесных повреждений|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 6.3 (Ф/Р) Тяжкое убийство (двух или более лиц / близких служащего)|до 50 месяцев с созданием записи о судимости (5 звезд)|1
@@ -1244,7 +1585,7 @@ InitDatabase() {
     )
     LoadData(u3)
 
-    u4 = 
+    u4 =
     (
 УК РО|Статья 9.6 (Ф/Р/С) Необоснованный отказ от предоставления медпомощи или услуг полиции|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 9.7 (Ф/Р/С) Воспрепятствование деятельности адвоката / вмешательство в защиту|до 40 месяцев с созданием записи о судимости (4 звезды)|0
@@ -1274,7 +1615,7 @@ InitDatabase() {
     )
     LoadData(u4)
 
-    u5 = 
+    u5 =
     (
 УК РО|Статья 11.7 (Ф/Р/С) Незаконные получение и разглашение коммерческой или банковской тайны|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 11.8 (Ф/С) Уклонение организации от уплаты штрафа|до 30 месяцев лишения свободы (3 звезды)|0
@@ -1304,7 +1645,7 @@ InitDatabase() {
     )
     LoadData(u5)
 
-    u6 = 
+    u6 =
     (
 УК РО|Статья 12.15 (Ф/Р/С) Участие в несанкционированных митингах и шествиях|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 12.15.1 (Ф/Р/С) Участие в несанкционированном митинге с игнорированием требований|до 50 месяцев лишения свободы (5 звезд)|0
@@ -1314,7 +1655,7 @@ InitDatabase() {
 УК РО|Статья 13.4 (Р/С) Пропаганда наркотических средств или растений|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 13.5 (Ф/С) Оборот наркотических средств сотрудниками госструктур|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 13.6 (Ф/С) Оборот синтетических наркотических веществ|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 13.7 (Ф/Р/С) Незаконный сбыт и распространение наркотических средств|до 40 месяцев с созданием записи о судимости (4 звезды)|1
+УК РО|Статья 13.8 (Ф/Р/С) Незаконный сбыт и распространение наркотических средств|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 14.1 (Ф/Р/С) Посягательство на жизнь государственного или общественного деятеля|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 14.2 (Ф/Р/С) Насильственный захват власти или вооруженный мятеж|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 14.2.1 (Ф/С) Агитация или руководство движением по захвату власти|до 40 месяцев с созданием записи о судимости (4 звезды)|0
@@ -1334,7 +1675,7 @@ InitDatabase() {
     )
     LoadData(u6)
 
-    u7 = 
+    u7 =
     (
 УК РО|Статья 15.6 (Ф/С) Халатность должностного лица с причинением крупного ущерба|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 15.7 (Ф/Р/С) Подкуп голосов избирателей во время выборов|до 10 месяцев лишения свободы (1 звезда)|0
@@ -1364,7 +1705,7 @@ InitDatabase() {
     )
     LoadData(u7)
 
-    u8 = 
+    u8 =
     (
 УК РО|Статья 17.2 (Ф/Р) Нанесение телесных повреждений или угроза представителю власти|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 17.3 (Ф/Р) Оскорбление представителя власти при исполнении обязанностей|до 30 месяцев лишения свободы (3 звезды)|1
@@ -1384,7 +1725,7 @@ InitDatabase() {
     )
     LoadData(u8)
 
-    p1 = 
+    p1 =
     (
 ПК РО|Глава I. Статья 1. Следственные действия и поводы к проверке|Очевидец, сообщение потерпевшего/граждан, следы, принятое заявление|0
 ПК РО|Глава I. Статья 2. Принципы расследования (Адекватность и Безотлагательность)|Профессионализм, отсутствие промедлений, точные умозаключения|0
@@ -1414,7 +1755,7 @@ InitDatabase() {
     )
     LoadData(p1)
 
-    p2 = 
+    p2 =
     (
 ПК РО|Глава II. Статья 2.5. Освобождение при неподтверждении оснований|Ограничение свободы немедленно прекращается|0
 ПК РО|Глава II. Статья 2.5.1. Возврат временно изъятых для безопасности предметов|Возвращаются законному владельцу после отпадения оснований удержания|0
@@ -1444,7 +1785,7 @@ InitDatabase() {
     )
     LoadData(p2)
 
-    p3 = 
+    p3 =
     (
 ПК РО|Глава II. Статья 8.1. Запрет вмешательства посторонних лиц в процессуальные действия|Требование отойти на безопасное расстояние обязательно к исполнению|0
 ПК РО|Глава II. Статья 9. Права задерживаемого лица (звонок 3 мин, адвокат 10 мин)|Право хранить молчание, право знать статьи и обжаловать действия|0
@@ -1474,7 +1815,7 @@ InitDatabase() {
     )
     LoadData(p3)
 
-    p4 = 
+    p4 =
     (
 ПК РО|Глава V. Статья 7. Порядок проведения допроса|Разъяснение прав, участие адвоката, категорический запрет насилия и угроз|0
 ПК РО|Глава V. Статья 8. Фиксация и хранение записи допроса (48 часов)|Непрерывная аудио-видеозапись; хранение не менее 48 часов|0
@@ -1504,7 +1845,7 @@ InitDatabase() {
     )
     LoadData(p4)
 
-    p5 = 
+    p5 =
     (
 ПК РО|Глава IX. Статья 5. Обжалование следственных решений СК|Руководителю следственного органа либо в суд|0
 ПК РО|Глава IX. Статья 6. Последствия признания действия незаконным|Немедленное освобождение гражданина и возврат изъятого имущества|0
@@ -1528,7 +1869,7 @@ InitDatabase() {
     )
     LoadData(p5)
 
-    pd1 = 
+    pd1 =
     (
 ПДД РО|Пункт 1.1 - 1.2. Обязанности участников движения соблюдать ПДД|Правила поведения на дорогах; ответственность по КоАП РО|0
 ПДД РО|Пункт 1.3. Правостороннее движение|Дорожное движение на всей территории РО является правосторонним|0
@@ -1551,14 +1892,14 @@ InitDatabase() {
 ПДД РО|Пункт 3.3. Действия при ДТП с пострадавшими|Первая помощь, вызов скорой помощи и инспекторов ГИБДД|0
 ПДД РО|Пункт 3.4 - 3.5. Оформление ДТП только с материальным ущербом|Фото-видеофиксация; при споре обязателен вызов ГИБДД|0
 ПДД РО|Пункт 3.6. Категорический запрет оставления места ДТП|Лишение права управления по ст. 48 КоАП РО|0
-ПДД РО|Пункт 3.7. Запрет употребления веществ/алкоголя после совершения ДТП|Запрещено употреблять алкоголь до проведения освидетельствования|0
+ПДД РО|Пункт 3.8. Запрет употребления веществ/алкоголя после совершения ДТП|Запрещено употреблять алкоголь до проведения освидетельствования|0
 ПДД РО|Пункт 4.1 - 4.2. Право отступать от правил при синих/красных маячках и сирене|Преимущество предоставляется только при одновременной сирене и маячках|0
 ПДД РО|Пункт 4.3 - 4.4. Обязанность уступить дорогу спецтранспорту с сиреной|Снизить скорость при приближении к стоящему спецтранспорту с маячками|0
 ПДД РО|Пункт 4.5 - 4.6. Желтые и оранжевые проблесковые маячки|Преимущества не дают; используются для эвакуаторов, дорожных служб|0
     )
     LoadData(pd1)
 
-    pd2 = 
+    pd2 =
     (
 ПДД РО|Пункт 5.1 - 5.4. Значения сигналов светофора (зеленый, желтый, красный)|Остановка перед стоп-линией на запрещающий сигнал светофора|0
 ПДД РО|Пункт 5.5 - 5.6. Сигналы регулировщика и их приоритет над светофором и знаками|Регулировщик имеет высший приоритет на участке движения|0
@@ -1597,7 +1938,7 @@ InitDatabase() {
     )
     LoadData(pd2)
 
-    pl1 = 
+    pl1 =
     (
 ФЗ О Полиции|Статья 1. Полиция РО в системе МВД РО|Защита жизни, здоровья, прав, свобод, борьба с преступностью и охрана порядка|0
 ФЗ О Полиции|Статья 2. Правовая основа деятельности полиции|Конституция РО, федеральные законы и кодексы; запрет произвольных ограничений|0
@@ -1627,7 +1968,7 @@ InitDatabase() {
     )
     LoadData(pl1)
 
-    pl2 = 
+    pl2 =
     (
 ФЗ О Полиции|Статья 26. Обеспечение прав задержанного|Разъяснение прав, вызов адвоката, обязательное участие прокурора для служащих|0
 ФЗ О Полиции|Статья 27. Безопасность задержанного и контроль состояния|Оказание медпомощи; постоянный контроль при применении наручников|0
@@ -1657,7 +1998,7 @@ InitDatabase() {
     )
     LoadData(pl2)
 
-    pl3 = 
+    pl3 =
     (
 ФЗ О Полиции|Статья 51. Основания применения огнестрельного оружия|Крайняя мера при угрозе жизни; запрет предупредительных выстрелов|0
 ФЗ О Полиции|Статья 52. Предупреждение о намерении применить силу/оружие|Предупреждение обязательно (исключение: внезапное нападение/угроза жизни)|0
@@ -1689,7 +2030,7 @@ InitDatabase() {
     )
     LoadData(pl3)
 
-    us1 = 
+    us1 =
     (
 Устав ГИБДД|Статья 1. Государственная инспекция безопасности дорожного движения|Орган исполнительной власти в сфере безопасности движения и контроля порядка|0
 Устав ГИБДД|Статья 2. Роль и обязательность Устава ГИБДД|Обязателен для всех сотрудников независимо от звания; незнание не освобождает|0
@@ -1712,7 +2053,7 @@ InitDatabase() {
     )
     LoadData(us1)
 
-    us2 = 
+    us2 =
     (
 Устав ГИБДД|Статья 18. Правила использования служебной радиосвязи|Краткость, запрет личных бесед; приоритет срочных сообщений и погонь|0
 Устав ГИБДД|Статья 19. Рабочий график сотрудников (с 10:00 до 23:00)|Перерывы суммарно не более 1 часа в течение служебного дня|0
