@@ -4,7 +4,6 @@ SetWorkingDir %A_ScriptDir%
 SendMode Input
 
 DllCall("SetProcessDPIAware")
-
 GetDPI() {
     hdc := DllCall("GetDC", "Ptr", 0, "Ptr")
     dpi := DllCall("GetDeviceCaps", "Ptr", hdc, "Int", 88)
@@ -137,8 +136,15 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     PostMessage, 0xA1, 2,,, A
 }
 
-ApplyRoundedCorners(hwnd, w, h, r) {
-    hRgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", r, "Int", r, "Ptr")
+ApplyRoundedCorners(hwnd, w := 0, h := 0, r := 18) {
+    VarSetCapacity(rc, 16, 0)
+    DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", &rc)
+    rw := NumGet(rc, 8, "Int") - NumGet(rc, 0, "Int")
+    rh := NumGet(rc, 12, "Int") - NumGet(rc, 4, "Int")
+    if (rw > 0 && rh > 0)
+        w := rw, h := rh
+    sr := Round(r * (A_ScreenDPI / 96.0))
+    hRgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", sr, "Int", sr, "Ptr")
     DllCall("SetWindowRgn", "Ptr", hwnd, "Ptr", hRgn, "UInt", 1)
 }
 
@@ -687,9 +693,10 @@ BuildOverlay() {
     Gui, Overlay:Add, Text, x1015 y104 w90 h20 Right vCountLabel, База...
     Gui, Overlay:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     Gui, Overlay:Add, ListView, x25 y140 w1070 h370 vMyLV gLVClick +AltSubmit -Multi +Grid Background%CLR_PANEL2% cFFFFFF +HwndhMyLV, Раздел|Статья / Часть / Пункт|Наказание / Санкция / Содержание
-    LV_ModifyCol(1, "130 Left")
-    LV_ModifyCol(2, "580 Left")
-    LV_ModifyCol(3, "350 Left")
+        c1 := S(130), c2 := S(580), c3 := S(340)
+    LV_ModifyCol(1, c1 . " Left")
+    LV_ModifyCol(2, c2 . " Left")
+    LV_ModifyCol(3, c3 . " Left")
     Gui, Overlay:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, Overlay:Add, GroupBox, x25 y520 w1070 h150, КАРТОЧКА СТАТЬИ И САНКЦИИ
     Gui, Overlay:Font, s10 c%CLR_TEXT% Normal, Segoe UI
