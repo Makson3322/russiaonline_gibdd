@@ -349,7 +349,7 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
     wW := 460, hW := 334
     Gui, Settings:Font, s16 c%CLR_TITLE% Bold, Segoe UI
-    Gui, Settings:Add, Text, x0 y18 w%wW% Center, ПАМЯТКА ДПС ГИБДД
+    Gui, Settings:Add, Text, x0 y18 w%wW% Center, ПАМЯТКА • ДИМА ЗЛАЯ КАКА
     Gui, Settings:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, Settings:Add, Text, x0 y48 w%wW% Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V3.9
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
