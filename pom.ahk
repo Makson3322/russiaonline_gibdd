@@ -3,6 +3,23 @@
 SetWorkingDir %A_ScriptDir%
 SendMode Input
 
+DllCall("SetProcessDPIAware")
+
+GetDPI() {
+    hdc := DllCall("GetDC", "Ptr", 0, "Ptr")
+    dpi := DllCall("GetDeviceCaps", "Ptr", hdc, "Int", 88)
+    DllCall("ReleaseDC", "Ptr", 0, "Ptr", hdc)
+    return dpi
+}
+
+global SYSTEM_DPI := GetDPI()
+global DPI_SCALE  := SYSTEM_DPI / 96.0
+
+S(val) {
+    global DPI_SCALE
+    return Round(val * DPI_SCALE)
+}
+
 if not A_IsAdmin
 {
     try {
@@ -14,7 +31,7 @@ if not A_IsAdmin
     ExitApp
 }
 
-global CurrentVersion := "3.8"
+global CurrentVersion := "3.9"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
@@ -37,6 +54,11 @@ global CLR_TITLE      := "FFFFFF"
 global TimerRemaining := 0
 global TimerActive := false
 global TimerModeName := "Не задан"
+global DisplayMap := []
+
+global LastSelectedItem := ""
+global LastSelectedPartIndex := ""
+global hMyLV := ""
 
 global IniFile := A_ScriptDir . "\config_gibdd.ini"
 IniRead, CurrentHotkey, %IniFile%, Settings, OpenKey, F3
@@ -63,84 +85,48 @@ ApplyTheme(name) {
     global
     CurrentTheme := name
     if (name = "Темный графит") {
-        CLR_BG_TOP     := "111215"
-        CLR_BG_BOT     := "20232A"
-        CLR_PANEL      := "171920"
-        CLR_PANEL2     := "1F222B"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "94A3B8"
-        CLR_ACCENT     := "6366F1"
-        CLR_ACCENT2    := "818CF8"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "111215", CLR_BG_BOT := "20232A"
+        CLR_PANEL := "171920", CLR_PANEL2 := "1F222B"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "94A3B8"
+        CLR_ACCENT := "6366F1", CLR_ACCENT2 := "818CF8"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     } else if (name = "Синий ДПС") {
-        CLR_BG_TOP     := "0B2240"
-        CLR_BG_BOT     := "123B6B"
-        CLR_PANEL      := "081A31"
-        CLR_PANEL2     := "0F2E54"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "8DA9C4"
-        CLR_ACCENT     := "2563EB"
-        CLR_ACCENT2    := "60A5FA"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "0B2240", CLR_BG_BOT := "123B6B"
+        CLR_PANEL := "081A31", CLR_PANEL2 := "0F2E54"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "8DA9C4"
+        CLR_ACCENT := "2563EB", CLR_ACCENT2 := "60A5FA"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     } else if (name = "Изумруд") {
-        CLR_BG_TOP     := "05241C"
-        CLR_BG_BOT     := "0D4733"
-        CLR_PANEL      := "041C16"
-        CLR_PANEL2     := "093828"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "A7F3D0"
-        CLR_ACCENT     := "059669"
-        CLR_ACCENT2    := "34D399"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "05241C", CLR_BG_BOT := "0D4733"
+        CLR_PANEL := "041C16", CLR_PANEL2 := "093828"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "A7F3D0"
+        CLR_ACCENT := "059669", CLR_ACCENT2 := "34D399"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     } else if (name = "Кровавый рубин") {
-        CLR_BG_TOP     := "260606"
-        CLR_BG_BOT     := "521212"
-        CLR_PANEL      := "1C0505"
-        CLR_PANEL2     := "360C0C"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "FECACA"
-        CLR_ACCENT     := "DC2626"
-        CLR_ACCENT2    := "F87171"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "260606", CLR_BG_BOT := "521212"
+        CLR_PANEL := "1C0505", CLR_PANEL2 := "360C0C"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "FECACA"
+        CLR_ACCENT := "DC2626", CLR_ACCENT2 := "F87171"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     } else if (name = "Янтарь") {
-        CLR_BG_TOP     := "1F1820"
-        CLR_BG_BOT     := "3A281A"
-        CLR_PANEL      := "171219"
-        CLR_PANEL2     := "271D1A"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "FDE68A"
-        CLR_ACCENT     := "D97706"
-        CLR_ACCENT2    := "FBBF24"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "1F1820", CLR_BG_BOT := "3A281A"
+        CLR_PANEL := "171219", CLR_PANEL2 := "271D1A"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "FDE68A"
+        CLR_ACCENT := "D97706", CLR_ACCENT2 := "FBBF24"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     } else {
         CurrentTheme   := "Фиолетовый градиент"
-        CLR_BG_TOP     := "0A1A4F"
-        CLR_BG_BOT     := "8B3FD1"
-        CLR_PANEL      := "0F1533"
-        CLR_PANEL2     := "141B44"
-        CLR_TEXT       := "F1F5F9"
-        CLR_MUTED      := "A9B4D0"
-        CLR_ACCENT     := "8B5CF6"
-        CLR_ACCENT2    := "A78BFA"
-        CLR_SUCCESS    := "34D399"
-        CLR_WARN       := "FBBF24"
-        CLR_DANGER     := "F87171"
-        CLR_TITLE      := "FFFFFF"
+        CLR_BG_TOP := "0A1A4F", CLR_BG_BOT := "8B3FD1"
+        CLR_PANEL := "0F1533", CLR_PANEL2 := "141B44"
+        CLR_TEXT := "F1F5F9", CLR_MUTED := "A9B4D0"
+        CLR_ACCENT := "8B5CF6", CLR_ACCENT2 := "A78BFA"
+        CLR_SUCCESS := "34D399", CLR_WARN := "FBBF24"
+        CLR_DANGER := "F87171", CLR_TITLE := "FFFFFF"
     }
 }
 
@@ -159,7 +145,7 @@ ApplyRoundedCorners(hwnd, w, h, r) {
 CopyToClip(strText, notifyMsg) {
     Clipboard := strText
     SoundPlay, *-1
-    TrayTip, ДПС ГИБДД [V3.8], %notifyMsg%, 2, 1
+    TrayTip, ДПС ГИБДД [V3.9], %notifyMsg%, 2, 1
 }
 
 CheckUpdateFast:
@@ -168,13 +154,10 @@ return
 
 CheckUpdate() {
     global CurrentVersion, LatestVersion, UpdateAvailable, LastUpdateError
-
     UpdateAvailable := false
     LatestVersion := ""
     LastUpdateError := ""
-
     GuiControl, Settings:, CheckStatusLabel, Проверка обновлений на GitHub...
-
     remoteVersion := GetRemoteVersion()
     if (remoteVersion = "") {
         HideUpdateUI()
@@ -184,9 +167,7 @@ CheckUpdate() {
             GuiControl, Settings:, CheckStatusLabel, Не удалось получить данные о версии
         return false
     }
-
     LatestVersion := remoteVersion
-
     if (IsNewer(remoteVersion, CurrentVersion)) {
         UpdateAvailable := true
         ApplyUpdateUI()
@@ -194,7 +175,6 @@ CheckUpdate() {
         ShowUpdateModal()
         return true
     }
-
     HideUpdateUI()
     GuiControl, Settings:, CheckStatusLabel, V%CurrentVersion% - установлена актуальная версия
     return true
@@ -323,29 +303,26 @@ ShowUpdateModal() {
     Gui, UpdateModal:Destroy
     Gui, UpdateModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhUpdateGui
     Gui, UpdateModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
-    Gui, UpdateModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
-    Gui, UpdateModal:Add, Text, x0 y24 w520 Center, ДОСТУПНА НОВАЯ ВЕРСИЯ
-
+    wW := 520, hW := 262
+    fs := 15
+	Gui, UpdateModal:Font, s%fs% c%CLR_TITLE% Bold, Segoe UI
+    Gui, UpdateModal:Add, Text, x0 y24 w%wW% Center, ДОСТУПНА НОВАЯ ВЕРСИЯ
     Gui, UpdateModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
-    Gui, UpdateModal:Add, Text, x0 y58 w520 Center, Обновление скрипта памятки ДПС ГИБДД
-
+    Gui, UpdateModal:Add, Text, x0 y58 w%wW% Center, Обновление скрипта памятки ДПС ГИБДД
     Gui, UpdateModal:Font, s10 c%CLR_TEXT% Normal, Segoe UI
     uMsg := "В официальном репозитории вышла версия: V" . LatestVersion . "`r`n"
           . "У вас установлена версия: V" . CurrentVersion . "`r`n`r`n"
           . "Рекомендуется обновиться для получения актуального`r`n"
           . "законодательства и улучшений."
     Gui, UpdateModal:Add, Text, x30 y98 w460 h80 Center, %uMsg%
-
     Gui, UpdateModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, UpdateModal:Add, Button, x40 y196 w240 h42 gOpenRepoUrl, Открыть GitHub
     Gui, UpdateModal:Add, Button, x290 y196 w190 h42 gCloseUpdateModal, Позже
-
-    Gui, UpdateModal:Show, w520 h262 Center, GIBDD_Update
+    Gui, UpdateModal:Show, w%wW% h%hW% Center, GIBDD_Update
     WinActivate, ahk_id %hUpdateGui%
     DllCall("SetForegroundWindow", "Ptr", hUpdateGui)
     DllCall("SetWindowPos", "Ptr", hUpdateGui, "Ptr", -1, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0001 | 0x0002 | 0x0040)
-    ApplyRoundedCorners(hUpdateGui, 520, 262, 18)
+    ApplyRoundedCorners(hUpdateGui, wW, hW, 18)
 }
 
 OpenRepoUrl:
@@ -364,31 +341,25 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Destroy
     Gui, Settings:+AlwaysOnTop -MaximizeBox -MinimizeBox -Caption +Border
     Gui, Settings:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
+    wW := 460, hW := 334
     Gui, Settings:Font, s16 c%CLR_TITLE% Bold, Segoe UI
-    Gui, Settings:Add, Text, x0 y18 w460 Center, ПАМЯТКА ДПС ГИБДД
-
+    Gui, Settings:Add, Text, x0 y18 w%wW% Center, ПАМЯТКА ДПС ГИБДД
     Gui, Settings:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
-    Gui, Settings:Add, Text, x0 y48 w460 Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V3.8
-
+    Gui, Settings:Add, Text, x0 y48 w%wW% Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V3.9
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Settings:Add, Button, x30 y74 w400 h36 vUpdateSettingsBtn gOpenRepoUrl +Hidden, ВЫШЛО ОБНОВЛЕНИЕ - СКАЧАТЬ
-
     Gui, Settings:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     if (savedKey == "NONE" || savedKey == "") {
-        Gui, Settings:Add, Text, x0 y118 w460 Center, Назначьте клавишу для открытия меню инспектора:
+        Gui, Settings:Add, Text, x0 y118 w%wW% Center, Назначьте клавишу для открытия меню инспектора:
         btnText := "Сохранить и запустить"
     } else {
-        Gui, Settings:Add, Text, x0 y116 w460 Center, Текущая клавиша: [%savedKey%] | Выберите новую или подтвердите:
+        Gui, Settings:Add, Text, x0 y116 w%wW% Center, Текущая клавиша: [%savedKey%] | Выберите новую или подтвердите:
         btnText := "Запустить помощник"
     }
-
     Gui, Settings:Font, s11 cFFFFFF Bold, Segoe UI
     Gui, Settings:Add, Hotkey, x90 y140 w280 h32 vNewHotkey, % (savedKey == "NONE" ? "F3" : savedKey)
-
     Gui, Settings:Font, s9 c%CLR_TEXT% Normal, Segoe UI
-    Gui, Settings:Add, Text, x0 y182 w460 Center, Выберите тему оформления скрипта:
-
+    Gui, Settings:Add, Text, x0 y182 w%wW% Center, Выберите тему оформления скрипта:
     themeChoices := ""
     allThemes := ["Фиолетовый градиент", "Синий ДПС", "Темный графит", "Изумруд", "Кровавый рубин", "Янтарь"]
     for idx, tName in allThemes
@@ -398,25 +369,20 @@ ShowSettingsGui(savedKey) {
         else
             themeChoices .= tName . "|"
     }
-
     Gui, Settings:Font, s10 c000000 Normal, Segoe UI
     Gui, Settings:Add, DropDownList, x90 y204 w280 vSelectedTheme gOnThemeDropdownChange, %themeChoices%
-
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Settings:Add, Button, x90 y252 w200 h40 gSaveAndStart, %btnText%
     Gui, Settings:Add, Button, x297 y252 w73 h40 gManualCheckUpdate, ОБН.
-
     Gui, Settings:Font, s8 c%CLR_MUTED% Normal, Segoe UI
-    Gui, Settings:Add, Text, x0 y304 w460 Center vCheckStatusLabel, Проверка обновлений...
-
+    Gui, Settings:Add, Text, x0 y304 w%wW% Center vCheckStatusLabel, Проверка обновлений...
     if (UpdateAvailable) {
         GuiControl, Settings:Show, UpdateSettingsBtn
         GuiControl, Settings:, UpdateSettingsBtn, ВЫШЛО ОБНОВЛЕНИЕ V%LatestVersion% - СКАЧАТЬ
     }
-
-    Gui, Settings:Show, w460 h334, Настройка биндера ГИБДД
+    Gui, Settings:Show, w%wW% h%hW%, Настройка биндера ГИБДД
     WinGet, hSet, ID, Настройка биндера ГИБДД
-    ApplyRoundedCorners(hSet, 460, 334, 18)
+    ApplyRoundedCorners(hSet, wW, hW, 18)
 }
 
 OnThemeDropdownChange:
@@ -445,7 +411,7 @@ SaveAndStart:
     IniWrite, %CurrentHotkey%, %IniFile%, Settings, OpenKey
     IniWrite, %CurrentTheme%, %IniFile%, Settings, Theme
     Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
-    TrayTip, ДПС ГИБДД V3.8, Настройки сохранены!`nКлавиша: [%CurrentHotkey%] | Тема: %CurrentTheme%, 3, 1
+    TrayTip, ДПС ГИБДД V3.9, Настройки сохранены!`nКлавиша: [%CurrentHotkey%] | Тема: %CurrentTheme%, 3, 1
     BuildOverlay()
     BuildSelectorGui()
     BuildTimerGui()
@@ -462,46 +428,34 @@ BuildSelectorGui() {
     Gui, Selector:Destroy
     Gui, Selector:+AlwaysOnTop +ToolWindow -Caption +LastFound +Border +HwndhSelectorGui
     Gui, Selector:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     WinSet, Transparent, 250
-
+    wW := 430, hW := 478
     Gui, Selector:Font, s16 c%CLR_TITLE% Bold, Segoe UI
-    Gui, Selector:Add, Text, x0 y18 w430 Center, СИСТЕМА ДПС ГИБДД
-
+    Gui, Selector:Add, Text, x0 y18 w%wW% Center, СИСТЕМА ДПС ГИБДД
     Gui, Selector:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
-    Gui, Selector:Add, Text, x0 y48 w430 Center, БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА  •  V3.8
-
+    Gui, Selector:Add, Text, x0 y48 w%wW% Center, БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА  •  V3.9
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Selector:Add, Button, x25 y76 w380 h34 vUpdateSelectorBtn gOpenRepoUrl +Hidden, ДОСТУПНО ОБНОВЛЕНИЕ
-
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Selector:Add, Button, x25 y116 w380 h38 gChoosePopular, ПОПУЛЯРНЫЕ СТАТЬИ (БАЗА ДПС)
     Gui, Selector:Add, Button, x25 y158 w380 h38 gChooseAll, ВСЕ СТАТЬИ И ЗАКОНЫ (ПОЛНАЯ БАЗА)
-
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Selector:Add, Button, x25 y202 w185 h36 gChooseKoAP, КоАП РО
     Gui, Selector:Add, Button, x220 y202 w185 h36 gChooseUK, УК РО
-
     Gui, Selector:Add, Button, x25 y242 w185 h36 gChooseProc, Процессуальный кодекс
     Gui, Selector:Add, Button, x220 y242 w185 h36 gChoosePDD, ПДД РО
-
     Gui, Selector:Add, Button, x25 y282 w185 h36 gChoosePolice, ФЗ О Полиции
     Gui, Selector:Add, Button, x220 y282 w185 h36 gChooseUstav, Устав ГИБДД
-
     Gui, Selector:Add, Button, x25 y324 w90 h36 gShowMiranda, Права
     Gui, Selector:Add, Button, x122 y324 w90 h36 gShowMegaphone, Рупор
     Gui, Selector:Add, Button, x219 y324 w90 h36 gShowBailCalc, Залог
     Gui, Selector:Add, Button, x315 y324 w90 h36 gShowRPBinder, РП
-
     Gui, Selector:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Selector:Add, Button, x25 y366 w185 h36 gToggleTimerFromSelector, Таймер задержания
     Gui, Selector:Add, Button, x220 y366 w185 h36 gShowForceStages, Стадии силы
-
     Gui, Selector:Add, Button, x25 y408 w380 h34 gShowRulesFromSelector, Регламент ст. 10 КоАП / Подследственность
-
     Gui, Selector:Font, s8 c%CLR_MUTED% Normal, Segoe UI
-    Gui, Selector:Add, Text, x0 y450 w430 Center, Закрыть: [%CurrentHotkey%] / [ESC]  •  Перемещение за фон
-
+    Gui, Selector:Add, Text, x0 y450 w%wW% Center, Закрыть: [%CurrentHotkey%] / [ESC]  •  Перемещение за фон
     if (UpdateAvailable) {
         GuiControl, Selector:Show, UpdateSelectorBtn
         GuiControl, Selector:, UpdateSelectorBtn, ДОСТУПНО ОБНОВЛЕНИЕ: V%LatestVersion%
@@ -626,10 +580,19 @@ Escape::
     CloseAllWindows()
 return
 Enter::
-    Gosub, CopySelected
+    Gosub, HandleEnterKey
 return
 NumpadEnter::
-    Gosub, CopySelected
+    Gosub, HandleEnterKey
+return
+Space::
+    Gosub, ToggleExpandSelected
+return
+Right::
+    Gosub, ExpandSelected
+return
+Left::
+    Gosub, CollapseSelected
 return
 Down::
     GuiControlGet, focusedCtrl, Overlay:FocusV
@@ -686,19 +649,14 @@ BuildOverlay() {
     Gui, Overlay:Default
     ActiveCategoryIndex := 1
     WinSet, Transparent, 250
-
     Gui, Overlay:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, Overlay:Add, Text, x25 y18 w360, ДПС ГИБДД КУТУЗОВСКИЙ
-
     Gui, Overlay:Font, s8 c%CLR_SUCCESS% Bold, Segoe UI
-    Gui, Overlay:Add, Text, x390 y24 w70, [ V3.8 ]
-
+    Gui, Overlay:Add, Text, x390 y24 w70, [ V3.9 ]
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Overlay:Add, Button, x470 y16 w220 h30 vUpdateNoticeBtn gOpenRepoUrl +Hidden, ОБНОВИТЬ СКРИПТ
-
     Gui, Overlay:Font, s9 c%CLR_MUTED% Normal, Segoe UI
-    Gui, Overlay:Add, Text, x700 y22 w400 Right, Закрыть: [%CurrentHotkey%] / [ESC]  •  Enter / 2xЛКМ: Копировать
-
+    Gui, Overlay:Add, Text, x700 y22 w400 Right, Закрыть: [%CurrentHotkey%] / [ESC]  •  Пробел/2xЛКМ: Развернуть
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Overlay:Add, Button, x25 y56 w70 h30 gTabPop, Топ
     Gui, Overlay:Add, Button, x100 y56 w65 h30 gTabAll, Все
@@ -708,7 +666,6 @@ BuildOverlay() {
     Gui, Overlay:Add, Button, x410 y56 w75 h30 gTabPDD, ПДД
     Gui, Overlay:Add, Button, x490 y56 w105 h30 gTabPol, ФЗ Полиция
     Gui, Overlay:Add, Button, x600 y56 w75 h30 gTabUstav, Устав
-
     Gui, Overlay:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, Overlay:Add, Button, x680 y56 w70 h30 gShowMiranda, Права
     Gui, Overlay:Add, Button, x755 y56 w70 h30 gShowMegaphone, Рупор
@@ -716,34 +673,27 @@ BuildOverlay() {
     Gui, Overlay:Add, Button, x905 y56 w60 h30 gShowRPBinder, РП
     Gui, Overlay:Add, Button, x970 y56 w85 h30 gToggleTimerGui, Таймер
     Gui, Overlay:Add, Button, x1060 y56 w35 h30 gOpenSettingsFromMenu, О
-
     Gui, Overlay:Font, s9 c%CLR_TEXT% Bold, Segoe UI
     Gui, Overlay:Add, Text, x25 y100 w60 h28 +0x200, Поиск:
-
     Gui, Overlay:Font, s10 cFFFFFF Normal, Segoe UI
-    Gui, Overlay:Add, Edit, x90 y98 w380 h30 vSearchTerm gFilterArticles -E0x200 +Border +HwndhSearchBox,
-
+    Gui, Overlay:Add, Edit, x90 y98 w320 h30 vSearchTerm gFilterArticles -E0x200 +Border +HwndhSearchBox,
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
-    Gui, Overlay:Add, Button, x478 y98 w36 h30 gClearSearch, X
-    Gui, Overlay:Add, Button, x522 y98 w145 h30 gCopySelected, Скопировать
-    Gui, Overlay:Add, Button, x675 y98 w110 h30 gShowForceStages, Стадии силы
-    Gui, Overlay:Add, Button, x792 y98 w135 h30 gShowRules, Регламент
-
+    Gui, Overlay:Add, Button, x418 y98 w34 h30 gClearSearch, X
+    Gui, Overlay:Add, Button, x458 y98 w135 h30 gCopySelected, Скопировать
+    Gui, Overlay:Add, Button, x599 y98 w180 h30 gToggleExpandSelected, ▶/▼ Раскрыть части
+    Gui, Overlay:Add, Button, x785 y98 w115 h30 gShowForceStages, Стадии силы
+    Gui, Overlay:Add, Button, x906 y98 w105 h30 gShowRules, Регламент
     Gui, Overlay:Font, s8 c%CLR_SUCCESS% Bold, Segoe UI
-    Gui, Overlay:Add, Text, x935 y104 w160 h20 Right vCountLabel, Загрузка базы...
-
+    Gui, Overlay:Add, Text, x1015 y104 w90 h20 Right vCountLabel, База...
     Gui, Overlay:Font, s9 c%CLR_TEXT% Normal, Segoe UI
-    Gui, Overlay:Add, ListView, x25 y140 w1070 h370 vMyLV gLVClick +AltSubmit -Multi +Grid Background%CLR_PANEL2% cFFFFFF, Раздел|Статья / Пункт|Наказание / Санкция / Содержание
-    LV_ModifyCol(1, "140 Left")
-    LV_ModifyCol(2, "560 Left")
-    LV_ModifyCol(3, "360 Left")
-
+    Gui, Overlay:Add, ListView, x25 y140 w1070 h370 vMyLV gLVClick +AltSubmit -Multi +Grid Background%CLR_PANEL2% cFFFFFF +HwndhMyLV, Раздел|Статья / Часть / Пункт|Наказание / Санкция / Содержание
+    LV_ModifyCol(1, "130 Left")
+    LV_ModifyCol(2, "580 Left")
+    LV_ModifyCol(3, "350 Left")
     Gui, Overlay:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, Overlay:Add, GroupBox, x25 y520 w1070 h150, КАРТОЧКА СТАТЬИ И САНКЦИИ
-
     Gui, Overlay:Font, s10 c%CLR_TEXT% Normal, Segoe UI
-    Gui, Overlay:Add, Edit, x38 y545 w1044 h110 vDetailBox ReadOnly -E0x200 +Multi Background%CLR_BG_TOP% +Border, Выберите статью в списке выше (Enter или двойной клик копирует информацию в буфер обмена)...
-
+    Gui, Overlay:Add, Edit, x38 y545 w1044 h110 vDetailBox ReadOnly -E0x200 +Multi Background%CLR_BG_TOP% +Border, Выберите статью в списке выше. Статьи со стрелкой [▶] можно раскрыть по частям (Пробел, 2xЛКМ или кнопка «Раскрыть части»)...
     Gosub, FilterArticles
 }
 
@@ -791,13 +741,12 @@ FilterArticles:
     Gui, Overlay:Submit, NoHide
     GuiControl, Overlay:-Redraw, MyLV
     LV_Delete()
-
     query := Trim(SearchTerm)
     catIndex := ActiveCategoryIndex
     matchCount := 0
     totalCount := ArticleDB.Length()
-
-    for index, item in ArticleDB
+    DisplayMap := []
+    for idx, item in ArticleDB
     {
         passCategory := false
         if (catIndex == 1) {
@@ -824,43 +773,186 @@ FilterArticles:
             if (InStr(item.Category, "Устав"))
                 passCategory := true
         }
-
         if (passCategory) {
-            if (query == "" || InStr(item.Category, query) || InStr(item.Title, query) || InStr(item.Punish, query)) {
-                LV_Add("", item.Category, item.Title, item.Punish)
+            hasParts := (item.Parts.Length() > 0)
+            matchesQuery := false
+            if (query == "") {
+                matchesQuery := true
+            } else {
+                if (InStr(item.Category, query) || InStr(item.Title, query) || InStr(item.Punish, query))
+                    matchesQuery := true
+                if (!matchesQuery && hasParts) {
+                    for pIdx, pItem in item.Parts {
+                        if (InStr(pItem.Title, query) || InStr(pItem.Punish, query)) {
+                            matchesQuery := true
+                            break
+                        }
+                    }
+                }
+            }
+            if (matchesQuery) {
                 matchCount++
+                prefix := hasParts ? (item.Expanded ? "▼ " : "▶ ") : "  "
+                LV_Add("", item.Category, prefix . item.Title, item.Punish)
+                DisplayMap.Push({"Item": item, "PartIndex": 0})
+                if (hasParts && (item.Expanded || (query != "" && matchesQuery))) {
+                    for pIdx, pItem in item.Parts {
+                        LV_Add("", "", "    ↳ " . pItem.Title, pItem.Punish)
+                        DisplayMap.Push({"Item": item, "PartIndex": pIdx})
+                    }
+                }
             }
         }
     }
     GuiControl, Overlay:+Redraw, MyLV
-    GuiControl, Overlay:, CountLabel, Найдено: %matchCount% из %totalCount%
+    GuiControl, Overlay:, CountLabel, Найдено: %matchCount%
+    if (LastSelectedItem && LastSelectedPartIndex != "") {
+        newRow := FindRowByItem(LastSelectedItem, LastSelectedPartIndex)
+        if (newRow > 0) {
+            LV_Modify(newRow, "Select Focus")
+            SendMessage, 0x1013, newRow - 1, 0, , ahk_id %hMyLV%
+        }
+        LastSelectedItem := ""
+        LastSelectedPartIndex := ""
+    }
 return
 
 LVClick:
     Gui, Overlay:Default
+    Row := LV_GetNext(0, "Focused")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    pIdx := info.PartIndex
     if (A_GuiEvent == "Normal" || A_GuiEvent == "K") {
-        Row := LV_GetNext(0, "Focused")
-        if (Row > 0) {
-            LV_GetText(tCat, Row, 1)
-            LV_GetText(tTitle, Row, 2)
-            LV_GetText(tPunish, Row, 3)
-            infoText := "РАЗДЕЛ:`t" . tCat . "`r`nСТАТЬЯ:`t" . tTitle . "`r`nНАКАЗАНИЕ:`t" . tPunish
+        if (pIdx == 0) {
+            infoText := "РАЗДЕЛ:`t" . item.Category . "`r`nСТАТЬЯ:`t" . item.Title . "`r`nСУТЬ / НАКАЗАНИЕ:`t" . item.Punish
+            if (item.Parts.Length() > 0) {
+                infoText .= "`r`n`r`n[СОДЕРЖИТ ЧАСТИ / ПУНКТЫ — Нажмите Пробел, 2xЛКМ или «Раскрыть части»]:`r`n"
+                for i, p in item.Parts
+                    infoText .= "  • " . p.Title . " — " . p.Punish . "`r`n"
+            }
+            GuiControl, Overlay:, DetailBox, %infoText%
+        } else {
+            part := item.Parts[pIdx]
+            infoText := "РАЗДЕЛ:`t" . item.Category . "`r`nСТАТЬЯ:`t" . item.Title . "`r`nЧАСТЬ / ПУНКТ:`t" . part.Title . "`r`nНАКАЗАНИЕ / СОДЕРЖАНИЕ:`t" . part.Punish
             GuiControl, Overlay:, DetailBox, %infoText%
         }
     }
     if (A_GuiEvent == "DoubleClick") {
+        if (pIdx == 0 && item.Parts.Length() > 0) {
+            LastSelectedItem := item
+            LastSelectedPartIndex := 0
+            item.Expanded := !item.Expanded
+            Gosub, FilterArticles
+        } else {
+            Gosub, CopySelected
+        }
+    }
+return
+
+HandleEnterKey:
+    Gui, Overlay:Default
+    Row := LV_GetNext(0, "Focused")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    pIdx := info.PartIndex
+    if (pIdx == 0 && item.Parts.Length() > 0) {
+        LastSelectedItem := item
+        LastSelectedPartIndex := 0
+        item.Expanded := !item.Expanded
+        Gosub, FilterArticles
+    } else {
         Gosub, CopySelected
     }
 return
 
+ToggleExpandSelected:
+    Gui, Overlay:Default
+    Row := LV_GetNext(0, "Focused")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    if (item.Parts.Length() > 0) {
+        LastSelectedItem := item
+        LastSelectedPartIndex := 0
+        item.Expanded := !item.Expanded
+        Gosub, FilterArticles
+    }
+return
+
+ExpandSelected:
+    Gui, Overlay:Default
+    Row := LV_GetNext(0, "Focused")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    if (item.Parts.Length() > 0 && !item.Expanded) {
+        LastSelectedItem := item
+        LastSelectedPartIndex := 0
+        item.Expanded := true
+        Gosub, FilterArticles
+    }
+return
+
+CollapseSelected:
+    Gui, Overlay:Default
+    Row := LV_GetNext(0, "Focused")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    if (item.Parts.Length() > 0 && item.Expanded) {
+        LastSelectedItem := item
+        LastSelectedPartIndex := 0
+        item.Expanded := false
+        Gosub, FilterArticles
+    }
+return
+
+FindRowByItem(targetItem, targetPIdx) {
+    global DisplayMap
+    for r, info in DisplayMap {
+        if (info.Item == targetItem && info.PartIndex == targetPIdx)
+            return r
+    }
+    return 0
+}
+
 CopySelected:
     Gui, Overlay:Default
     Row := LV_GetNext(0, "Focused")
-    if (Row > 0) {
-        LV_GetText(tCat, Row, 1)
-        LV_GetText(tTitle, Row, 2)
-        LV_GetText(tPunish, Row, 3)
-        CopyToClip("[" . tCat . "] " . tTitle . " - Наказание: " . tPunish, "Статья скопирована!")
+    if (Row <= 0)
+        return
+    info := DisplayMap[Row]
+    if (!info)
+        return
+    item := info.Item
+    pIdx := info.PartIndex
+    if (pIdx == 0) {
+        if (item.Parts.Length() > 0) {
+            CopyToClip("[" . item.Category . "] " . item.Title . " - " . item.Punish, "Статья скопирована!")
+        } else {
+            CopyToClip("[" . item.Category . "] " . item.Title . " - Наказание: " . item.Punish, "Статья скопирована!")
+        }
+    } else {
+        part := item.Parts[pIdx]
+        CopyToClip("[" . item.Category . "] " . item.Title . " (" . part.Title . ") - " . part.Punish, "Пункт статьи скопирован!")
     }
 return
 
@@ -869,13 +961,10 @@ ShowMiranda:
     Gui, MirandaModal:Destroy
     Gui, MirandaModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMirandaGui
     Gui, MirandaModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, MirandaModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, MirandaModal:Add, Text, x0 y20 w580 Center, ПРАВИЛО МИРАНДЫ
-
     Gui, MirandaModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, MirandaModal:Add, Text, x0 y52 w580 Center, Статья 6 Главы II Процессуального кодекса РО
-
     Gui, MirandaModal:Font, s11 c%CLR_TEXT% Normal, Segoe UI
     mText := "«Вы имеете право хранить молчание.`r`n"
           . "Всё, что вы скажете, может и будет использовано против Вас в суде.`r`n"
@@ -884,14 +973,11 @@ ShowMiranda:
           . "Если вам необходим адвокат, он будет для Вас запрошен.`r`n`r`n"
           . "Вы понимаете свои права?»"
     Gui, MirandaModal:Add, Text, x30 y88 w520 h140 Center, %mText%
-
     Gui, MirandaModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
     Gui, MirandaModal:Add, Text, x0 y240 w580 Center, Звонок: до 3 минут в присутствии  •  Адвокат: встреча 10 минут наедине
-
     Gui, MirandaModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, MirandaModal:Add, Button, x90 y278 w190 h42 gCopyMiranda, Скопировать текст
     Gui, MirandaModal:Add, Button, x300 y278 w190 h42 gCloseMiranda, Закрыть
-
     Gui, MirandaModal:Show, w580 h340 Center, GIBDD_Miranda
     WinActivate, ahk_id %hMirandaGui%
     DllCall("SetForegroundWindow", "Ptr", hMirandaGui)
@@ -913,40 +999,32 @@ ShowMegaphone:
     Gui, MegaphoneModal:Destroy
     Gui, MegaphoneModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhMegaphoneGui
     Gui, MegaphoneModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, MegaphoneModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, MegaphoneModal:Add, Text, x0 y18 w660 Center, ТРЕБОВАНИЯ В МЕГАФОН
-
     Gui, MegaphoneModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, MegaphoneModal:Add, Text, x0 y48 w660 Center, Статья 6 Главы XI Процессуального кодекса РО
-
     Gui, MegaphoneModal:Add, GroupBox, x20 y75 w620 h74, 1-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ
     Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     Gui, MegaphoneModal:Add, Text, x32 y95 w460 h46, Водитель ТС, прижмитесь к обочине и остановитесь! В противном случае будут применены меры принудительной остановки!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, MegaphoneModal:Add, Button, x500 y93 w128 h38 gCopyMega1, Скопировать [1]
-
     Gui, MegaphoneModal:Add, GroupBox, x20 y155 w620 h74, 2-е ТРЕБОВАНИЕ ОБ ОСТАНОВКЕ
     Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     Gui, MegaphoneModal:Add, Text, x32 y175 w460 h46, Повторяю требование об остановке! Немедленно прижмитесь к обочине, заглушите двигатель и оставайтесь в авто!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, MegaphoneModal:Add, Button, x500 y173 w128 h38 gCopyMega2, Скопировать [2]
-
     Gui, MegaphoneModal:Add, GroupBox, x20 y235 w620 h74, 3-е ТРЕБОВАНИЕ (ФИНАЛЬНОЕ / ОГОНЬ)
     Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     Gui, MegaphoneModal:Add, Text, x32 y255 w460 h46, Это последнее предупреждение! В случае неподчинения будет открыт огонь по колесам и применен силовой таран!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, MegaphoneModal:Add, Button, x500 y253 w128 h38 gCopyMega3, Скопировать [3]
-
     Gui, MegaphoneModal:Add, GroupBox, x20 y315 w620 h74, ТРЕБОВАНИЕ ЗАГЛУШИТЬ ДВИГАТЕЛЬ
     Gui, MegaphoneModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     Gui, MegaphoneModal:Add, Text, x32 y335 w460 h46, Заглушите двигатель, положите руки на руль и приготовьте документы для проверки инспектором!
     Gui, MegaphoneModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, MegaphoneModal:Add, Button, x500 y333 w128 h38 gCopyMega4, Скопировать [4]
-
     Gui, MegaphoneModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, MegaphoneModal:Add, Button, x240 y400 w180 h38 gCloseMegaphone, Закрыть
-
     Gui, MegaphoneModal:Show, w660 h450 Center, GIBDD_Megaphone
     WinActivate, ahk_id %hMegaphoneGui%
     DllCall("SetForegroundWindow", "Ptr", hMegaphoneGui)
@@ -977,36 +1055,27 @@ ShowBailCalc:
     Gui, BailModal:Destroy
     Gui, BailModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhBailGui
     Gui, BailModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, BailModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, BailModal:Add, Text, x0 y18 w460 Center, КАЛЬКУЛЯТОР ЗАЛОГА
-
     Gui, BailModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, BailModal:Add, Text, x0 y48 w460 Center, Статья 5.10 УК РО  •  1 год = 25 000 рублей
-
     Gui, BailModal:Font, s10 c%CLR_TEXT% Bold, Segoe UI
     Gui, BailModal:Add, Text, x35 y86 w180 h28 +0x200, Срок ареста (лет):
-
     Gui, BailModal:Font, s11 cFFFFFF Bold, Segoe UI
     Gui, BailModal:Add, Edit, x220 y84 w200 h30 vBailYears gCalcBail -E0x200 +Border +Number, 1
-
     Gui, BailModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, BailModal:Add, Button, x35 y122 w70 h28 gSetBail1, 1 год
     Gui, BailModal:Add, Button, x115 y122 w70 h28 gSetBail2, 2 года
     Gui, BailModal:Add, Button, x195 y122 w70 h28 gSetBail3, 3 года
     Gui, BailModal:Add, Button, x275 y122 w70 h28 gSetBail4, 4 года
     Gui, BailModal:Add, Button, x350 y122 w70 h28 gSetBail5, 5 лет
-
     Gui, BailModal:Font, s12 c%CLR_SUCCESS% Bold, Segoe UI
     Gui, BailModal:Add, Text, x0 y160 w460 Center vBailResult, Итоговая сумма: 25 000 руб
-
     Gui, BailModal:Font, s8 c%CLR_MUTED% Normal, Segoe UI
     Gui, BailModal:Add, Text, x0 y190 w460 Center, Залог не применяется по статьям с судимостью (от 4 звезд)
-
     Gui, BailModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, BailModal:Add, Button, x70 y218 w150 h38 gCopyBailSum, Скопировать
     Gui, BailModal:Add, Button, x240 y218 w150 h38 gCloseBail, Закрыть
-
     Gui, BailModal:Show, w460 h274 Center, GIBDD_Bail
     WinActivate, ahk_id %hBailGui%
     DllCall("SetForegroundWindow", "Ptr", hBailGui)
@@ -1063,35 +1132,25 @@ ShowRPBinder:
     Gui, RPBinderModal:Destroy
     Gui, RPBinderModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRPGui
     Gui, RPBinderModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, RPBinderModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, RPBinderModal:Add, Text, x0 y18 w620 Center, БЫСТРЫЕ RP-ОТЫГРОВКИ ДПС ГИБДД
-
     Gui, RPBinderModal:Font, s9 c%CLR_MUTED% Normal, Segoe UI
     Gui, RPBinderModal:Add, Text, x0 y48 w620 Center, Нажмите для копирования отыгровки в буфер обмена
-
     Gui, RPBinderModal:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, RPBinderModal:Add, Button, x25 y78 w275 h38 gRPDoc, 1. Предъявить удостоверение
     Gui, RPBinderModal:Add, Button, x320 y78 w275 h38 gRPStopSign, 2. Остановка жезлом ДПС
-
     Gui, RPBinderModal:Add, Button, x25 y122 w275 h38 gRPReqDocs, 3. Запрос В/У и документов
     Gui, RPBinderModal:Add, Button, x320 y122 w275 h38 gRPKpk, 4. Проверка гражданина по КПК
-
     Gui, RPBinderModal:Add, Button, x25 y166 w275 h38 gRPAlco, 5. Освидетельствование (Алко)
     Gui, RPBinderModal:Add, Button, x320 y166 w275 h38 gRPFrisk, 6. Первичный досмотр
-
     Gui, RPBinderModal:Add, Button, x25 y210 w275 h38 gRPCuff, 7. Надеть наручники
     Gui, RPBinderModal:Add, Button, x320 y210 w275 h38 gRPInCar, 8. Посадить в патруль (/incar)
-
     Gui, RPBinderModal:Add, Button, x25 y254 w275 h38 gRPEject, 9. Высадить из авто (/eject)
     Gui, RPBinderModal:Add, Button, x320 y254 w275 h38 gRPProtocol, 10. Протокол КоАП (штраф)
-
     Gui, RPBinderModal:Add, Button, x25 y298 w275 h38 gRPTow, 11. Эвакуация на штрафстоянку
     Gui, RPBinderModal:Add, Button, x320 y298 w275 h38 gRPArrest, 12. Помещение в ИВС (/arrest)
-
     Gui, RPBinderModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, RPBinderModal:Add, Button, x220 y350 w180 h38 gCloseRPBinder, Закрыть
-
     Gui, RPBinderModal:Show, w620 h404 Center, GIBDD_RP
     WinActivate, ahk_id %hRPGui%
     DllCall("SetForegroundWindow", "Ptr", hRPGui)
@@ -1146,24 +1205,18 @@ ShowForceStages:
     Gui, ForceModal:Destroy
     Gui, ForceModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhForceGui
     Gui, ForceModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, ForceModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, ForceModal:Add, Text, x0 y18 w620 Center, СТАДИИ ПРИМЕНЕНИЯ СИЛЫ И ОРУЖИЯ
-
     Gui, ForceModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, ForceModal:Add, Text, x0 y48 w620 Center, Глава XI Процессуального кодекса РО  •  ФЗ О Полиции
-
     Gui, ForceModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
-
     Gui, ForceModal:Add, Text, x30 y82 w560 h38, 1. ПРИСУТСТВИЕ СОТРУДНИКА — нахождение сотрудника в форме и служебном авто. Предостерегает от нарушений одним лишь присутствием.
     Gui, ForceModal:Add, Text, x30 y124 w560 h38, 2. УСТНЫЕ ТРЕБОВАНИЯ — законные, понятные распоряжения сотрудника полиции. Предупреждение о последствиях неподчинения.
     Gui, ForceModal:Add, Text, x30 y166 w560 h38, 3. ФИЗИЧЕСКАЯ СИЛА — применение боевых приемов, захватов и заломов для преодоления физического сопротивления нарушителя.
     Gui, ForceModal:Add, Text, x30 y208 w560 h38, 4. СПЕЦСРЕДСТВА (Тазер, дубинка, наручники) — применяются при активном сопротивлении, побеге или групповых беспорядках.
     Gui, ForceModal:Add, Text, x30 y250 w560 h48, 5. СМЕРТЕЛЬНАЯ СИЛА (Огнестрельное оружие) — применяется ИСКЛЮЧИТЕЛЬНО при реальной и непосредственной угрозе жизни граждан или сотрудников. Предупредительные выстрелы запрещены!
-
     Gui, ForceModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, ForceModal:Add, Button, x220 y308 w180 h38 gCloseForceStages, Закрыть
-
     Gui, ForceModal:Show, w620 h362 Center, GIBDD_Force
     WinActivate, ahk_id %hForceGui%
     DllCall("SetForegroundWindow", "Ptr", hForceGui)
@@ -1181,24 +1234,18 @@ BuildTimerGui() {
     Gui, ProcTimer:Destroy
     Gui, ProcTimer:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhTimerGui
     Gui, ProcTimer:Color, %CLR_PANEL%, %CLR_PANEL2%
-
     Gui, ProcTimer:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, ProcTimer:Add, Text, x10 y8 w220 Center, ТАЙМЕР ЗАДЕРЖАНИЯ
-
     Gui, ProcTimer:Font, s16 c%CLR_TITLE% Bold, Consolas
     Gui, ProcTimer:Add, Text, x10 y30 w220 Center vTimerDisplay, 00:00
-
     Gui, ProcTimer:Font, s8 c%CLR_MUTED% Normal, Segoe UI
     Gui, ProcTimer:Add, Text, x10 y60 w220 Center vTimerStatusLabel, Режим: Не задан
-
     Gui, ProcTimer:Font, s8 cFFFFFF Bold, Segoe UI
     Gui, ProcTimer:Add, Button, x10 y86 w68 h26 gSetTimerAdv, 10м Адв
     Gui, ProcTimer:Add, Button, x86 y86 w68 h26 gSetTimerJudge, 15м Суд
     Gui, ProcTimer:Add, Button, x162 y86 w68 h26 gSetTimerHour, 60м Час
-
     Gui, ProcTimer:Add, Button, x10 y118 w104 h26 gToggleTimerRunning, Старт / Пауза
     Gui, ProcTimer:Add, Button, x126 y118 w104 h26 gResetTimer, Сбросить
-
     Gui, ProcTimer:Font, s8 c%CLR_DANGER% Bold, Segoe UI
     Gui, ProcTimer:Add, Button, x10 y150 w220 h24 gHideTimerGui, Закрыть таймер
 }
@@ -1295,27 +1342,20 @@ ShowRules:
     Gui, RulesModal:Destroy
     Gui, RulesModal:+AlwaysOnTop +ToolWindow -Caption +Border +HwndhRulesGui
     Gui, RulesModal:Color, %CLR_BG_TOP%, %CLR_BG_BOT%
-
     Gui, RulesModal:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, RulesModal:Add, Text, x25 y20 w570, ПРИМЕЧАНИЯ И РЕГЛАМЕНТ ДПС
-
     Gui, RulesModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, RulesModal:Add, GroupBox, x25 y52 w570 h130, 1. РЕГЛАМЕНТ СТАТЬИ 10 КоАП (ОТКАЗ ОТ ШТРАФА)
-
     Gui, RulesModal:Font, s9 c%CLR_TEXT% Normal, Segoe UI
     rText1 := "За нарушение ст. 10 КоАП задержанного необходимо отвозить в здание Правительства.`r`nДалее туда же вызываем сотрудника МВД для передачи процессуальных действий и судью через канал в Discord фракции.`r`nЕсли судья не приедет в течение 15 минут — задержанного необходимо отпустить, а материалы дела направить в суд."
     Gui, RulesModal:Add, Text, x38 y78 w544 h95, %rText1%
-
     Gui, RulesModal:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
     Gui, RulesModal:Add, GroupBox, x25 y190 w570 h125, 2. ПОДСЛЕДСТВЕННОСТЬ СТРУКТУР (КУДА ВЕЗТИ)
-
     Gui, RulesModal:Font, s10 c%CLR_SUCCESS% Bold, Consolas
     rText2 := "Ф  ->  ФСБ`r`nС  ->  Следственный комитет`r`nР  ->  МВД (основное место доставки ДПС)`r`nВ  ->  Военная полиция / Армия"
     Gui, RulesModal:Add, Text, x40 y216 w540 h90, %rText2%
-
     Gui, RulesModal:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, RulesModal:Add, Button, x210 y330 w200 h42 gCloseRules, Закрыть
-
     Gui, RulesModal:Show, w620 h390 Center, GIBDD_Rules
     WinActivate, ahk_id %hRulesGui%
     DllCall("SetForegroundWindow", "Ptr", hRulesGui)
@@ -1340,7 +1380,6 @@ return
 
 InitDatabase() {
     global ArticleDB := []
-
     k1 =
     (
 КоАП РО|Статья 1.1. Законодательство об административных правонарушениях|Состоит из Кодекса и федеральных законов; подзаконные акты не вводят наказаний|0
@@ -1356,7 +1395,7 @@ InitDatabase() {
 КоАП РО|Статья 3.3. Разграничение с преступлением|При признаках преступления адм. производство прекращается и передается в СК/МВД|0
 КоАП РО|Статья 4.1. Крайняя необходимость|Причинение меньшего вреда для устранения непосредственно угрожающей опасности|0
 КоАП РО|Статья 4.2. Правомерное осуществление полномочий|Действия в пределах прямо предоставленных законом прав не являются правонарушением|0
-КоАП РО|Статья 5.1. Малозначительность правонарушения|Возвозможность освобождения от ответственности с объявлением устного замечания|0
+КоАП РО|Статья 5.1. Малозначительность правонарушения|Возможность освобождения от ответственности с объявлением устного замечания|0
 КоАП РО|Статья 6.1. Цели административного наказания|Восстановление нарушенного правопорядка и предупреждение совершения новых деяний|0
 КоАП РО|Статья 6.2. Виды административных наказаний|Предупреждение, штраф, арест, конфискация, лишение права, приостановление|0
 КоАП РО|Статья 6.3. Предупреждение|Официальное порицание за впервые совершенное малозначительное деяние|0
@@ -1382,22 +1421,17 @@ InitDatabase() {
 КоАП РО|Статья 9.5. Ведомственный пересмотр решения|Жалоба руководству; предоставление видеозаписей за 24 ч, рассмотрение за 72 ч|0
 КоАП РО|Статья 9.6. Исполнение административного штрафа|Игнор штрафного тикета 15 секунд / отказ оплаты = состав статьи 10 КоАП|0
 КоАП РО|Статья 10. Уклонение от исполнения административного наказания|Административный арест на 10 суток (1 звезда / Суд в Правительстве)|1
-КоАП РО|Статья 11. ч.1. Мелкое хулиганство (непристойное поведение, нецензурная брань)|Штраф от 5.000 до 15.000 рублей либо арест до 10 суток|0
-КоАП РО|Статья 11. ч.2. Мелкое хулиганство повторно, группой лиц или отказ прекратить|Штраф от 15.000 до 30.000 рублей либо арест до 10 суток|0
-КоАП РО|Статья 11.1. ч.1. Нарушение порядка проведения публичного мероприятия|Штраф от 10.000 до 25.000 рублей|0
-КоАП РО|Статья 11.1. ч.2. Организация/продолжение митинга после требования прекратить|Штраф от 25.000 до 50.000 рублей либо арест до 10 суток|0
+КоАП РО|Статья 11. Мелкое хулиганство|Штраф от 5.000 до 30.000 руб либо арест до 10 суток|1|ч. 1 Непристойное поведение, брань, приставание^Штраф от 5.000 до 15.000 руб либо арест до 10 суток~ч. 2 Повторно, группой лиц либо отказ прекратить^Штраф от 15.000 до 30.000 руб либо арест до 10 суток
+КоАП РО|Статья 11.1. Нарушение порядка проведения публичного мероприятия|Штраф от 10.000 до 50.000 руб либо арест до 10 суток|0|ч. 1 Нарушение уведомления, времени или места^Штраф от 10.000 до 25.000 рублей~ч. 2 Продолжение после законного требования прекратить^Штраф от 25.000 до 50.000 рублей либо арест до 10 суток
 КоАП РО|Статья 12. Самовольное использование государственного имущества|Штраф от 20.000 до 50.000 рублей с возмещением причиненного ущерба|0
 КоАП РО|Статья 13. Нахождение в состоянии опьянения, нарушающем общественный порядок|Штраф от 5.000 до 15.000 рублей либо арест до 5 суток|0
-КоАП РО|Статья 13.1. ч.1. Нарушение режима ношения бронезащиты на охраняемом объекте|Штраф от 10.000 до 20.000 рублей|0
-КоАП РО|Статья 13.1. ч.2. Ношение бронезащиты с сокрытием личности или отказом покинуть|Штраф от 20.000 до 35.000 рублей либо арест до 7 суток|0
+КоАП РО|Статья 13.1. Нарушение режима бронезащиты на охраняемом объекте|Штраф от 10.000 до 35.000 руб либо арест до 7 суток|0|ч. 1 Ношение бронезащиты вопреки режиму^Штраф от 10.000 до 20.000 рублей~ч. 2 Сокрытие личности или отказ покинуть объект^Штраф от 20.000 до 35.000 рублей либо арест до 7 суток
 КоАП РО|Статья 14. Азартные игры в неустановленном месте|Штраф от 10.000 до 30.000 рублей; организатору от 20.000 до 50.000 рублей|0
 КоАП РО|Статья 15. Опасное открытое ношение или использование разрешенных предметов|Штраф от 15.000 до 30.000 рублей; повторно от 30.000 до 50.000 рублей|0
 КоАП РО|Статья 16. Нецелевое расходование бюджетных средств|Штраф должностному лицу от 75.000 до 150.000 рублей (Судебный порядок)|0
-КоАП РО|Статья 17. ч.1. Незаконное нахождение на частной территории|Штраф от 5.000 до 15.000 рублей|0
-КоАП РО|Статья 17. ч.2. Повторный отказ покинуть территорию либо преодоление ограждения|Штраф от 15.000 до 30.000 рублей либо арест до 5 суток|0
+КоАП РО|Статья 17. Незаконное нахождение на частной территории|Штраф от 5.000 до 30.000 руб либо арест до 5 суток|0|ч. 1 Нахождение вопреки воле владельца^Штраф от 5.000 до 15.000 рублей~ч. 2 Повторный отказ либо преодоление ограждения^Штраф от 15.000 до 30.000 рублей либо арест до 5 суток
 КоАП РО|Статья 18. Незаконный оборот наркотических средств в незначительном размере (до 3 г)|Штраф от 20.000 до 40.000 рублей либо арест до 10 суток с изъятием|0
-КоАП РО|Статья 19. ч.1. Причинение незначительного вреда здоровью, побои|Штраф от 15.000 до 30.000 рублей либо арест до 10 суток|0
-КоАП РО|Статья 19. ч.2. Причинение вреда по неосторожности при грубом нарушении безопасности|Штраф от 10.000 до 20.000 рублей|0
+КоАП РО|Статья 19. Причинение незначительного вреда здоровью, побои|Штраф от 10.000 до 30.000 руб либо арест до 10 суток|0|ч. 1 Умышленное причинение боли, побои^Штраф от 15.000 до 30.000 рублей либо арест до 10 суток~ч. 2 По неосторожности при грубом нарушении правил^Штраф от 10.000 до 20.000 рублей
     )
     LoadData(k2)
 
@@ -1407,18 +1441,16 @@ InitDatabase() {
 КоАП РО|Статья 21. Угроза причинением вреда, не образующая преступления|Штраф от 15.000 до 30.000 рублей|0
 КоАП РО|Статья 22. Создание антисанитарной обстановки в общественном месте|Штраф от 5.000 до 15.000 рублей|0
 КоАП РО|Статья 23. Оскорбление (унижение чести и достоинства в неприличной форме)|Штраф от 10.000 до 20.000 рублей|0
-КоАП РО|Статья 24. Дискриминация прав граждан|Штраф гражданину от 10.000 до 30.000; должностному от 30.000 до 70.000 руб (Суд)|0
+КоАП РО|Статья 24. Дискриминация прав граждан|Штраф гражданину от 10.000 до 30.000; должностному от 30.000 до 70.000 руб (Суд)|0|ч. 1 Нарушение прав гражданином^Штраф от 10.000 до 30.000 рублей~ч. 2 Совершенное должностным лицом^Штраф от 30.000 до 70.000 рублей (Суд)
 КоАП РО|Статья 24.1. Дискриминация в сфере труда|Штраф работодателю или должностному лицу от 30.000 до 80.000 рублей (Суд)|0
-КоАП РО|Статья 25. Публичное унижение группы лиц|Штраф от 20.000 до 50.000 рублей (Судебный порядок)|0
-КоАП РО|Статья 26. Воспрепятствование оказанию медицинской помощи|Штраф от 20.000 до 40.000 руб; при продолжении до 50.000 руб или арест 10 сут|0
+КоАП РО|Статья 25. Публичное унижение группы лиц|Штраф от 20.000 до 50.000 рублей (Судебный порядок)|0КоАП РО|Статья 26. Воспрепятствование оказанию медицинской помощи|Штраф от 20.000 до 40.000 руб; при продолжении до 50.000 руб или арест 10 сут|0
 КоАП РО|Статья 27. Повреждение чужого имущества в незначительном размере|Штраф от 10.000 до 30.000 рублей с обязанностью возместить ущерб|0
 КоАП РО|Статья 28. Воспрепятствование законной деятельности журналиста|Штраф от 15.000 до 35.000 рублей|0
 КоАП РО|Статья 29. Неправомерное использование специальных средств должностным лицом|Штраф должностному лицу от 30.000 до 70.000 рублей (Прокуратура)|0
-КоАП РО|Статья 30. Неисполнение законного письменного предписания или акта|Штраф гражданину 20.000-50.000; должностному 50.000-100.000 (Прокуратура)|0
+КоАП РО|Статья 30. Неисполнение законного письменного предписания или акта|Штраф гражданину 20.000-50.000; должностному 50.000-100.000 (Прокуратура)|0|гражданину^Штраф от 20.000 до 50.000 рублей~должностному лицу^Штраф от 50.000 до 100.000 рублей~организации^Штраф от 100.000 до 250.000 рублей
 КоАП РО|Статья 30.1. Неисполнение законного адвокатского запроса|Штраф должностному лицу от 20.000 до 50.000 рублей (Прокуратура)|0
 КоАП РО|Статья 31. Нарушение порядка доступа к общественно значимой информации|Штраф должностному лицу от 20.000 до 50.000 рублей (Суд)|0
-КоАП РО|Статья 32. ч.1. Нарушение правил использования законно принадлежащего оружия|Штраф от 30.000 до 60.000 рублей|0
-КоАП РО|Статья 32. ч.2. Нарушение правил оружия с реальной угрозой либо повторно|Штраф от 40.000 до 80.000 рублей с лишением лицензии до 30 дней (Суд)|0
+КоАП РО|Статья 32. Нарушение правил использования законно принадлежащего оружия|Штраф от 30.000 до 80.000 руб с лишением права до 30 дней|0|ч. 1 Нарушение правил ношения/безопасности^Штраф от 30.000 до 60.000 рублей~ч. 2 Реальная угроза либо повторно^Штраф от 40.000 до 80.000 руб с лишением лицензии до 30 дней (Суд)
 КоАП РО|Статья 33. Браконьерство (охота или рыболовство без разрешения/в запретном месте)|Штраф от 20.000 до 50.000 рублей с изъятием добычи и лишением права (Суд)|0
 КоАП РО|Статья 34. Превышение установленной нормы добычи природных ресурсов|Штраф от 10.000 до 30.000 рублей с изъятием добычи сверх нормы|0
 КоАП РО|Статья 35. Неуважение к суду|Штраф от 10.000 до 50.000 рублей либо административный арест до 10 суток (Суд)|0
@@ -1439,19 +1471,17 @@ InitDatabase() {
 КоАП РО|Статья 42.3. Просроченные медицинские справки у государственного служащего|Штраф до 20.000 рублей|0
 КоАП РО|Статья 42.4. Препятствие или отказ от санитарно-эпидемиологической проверки|Штраф от 50.000 до 100.000 рублей|0
 КоАП РО|Статья 42.5. Нарушение санитарно-эпидемиологических правил (угроза заболевания)|Штраф до 10.000 рублей|0
-КоАП РО|Статья 43. Нарушение требований трудового законодательства работодателем|Штраф от 15.000 до 100.000 рублей в зависимости от части (Прокуратура)|0
+КоАП РО|Статья 43. Нарушение требований трудового законодательства работодателем|Штраф от 15.000 до 100.000 рублей в зависимости от части (Прокуратура)|0|ч. 1 Нарушение трудового права^Штраф от 15.000 до 40.000 рублей~ч. 3 Незаконное увольнение^Штраф от 30.000 до 80.000 рублей~ч. 4 Незаконное дисциплинарное взыскание^Штраф от 20.000 до 50.000 рублей~ч. 6 Нарушение права на отдых и оплату^Штраф от 20.000 до 60.000 рублей
 КоАП РО|Статья 44. Незаконные правила внутреннего трудового распорядка|Штраф от 100.000 до 250.000 рублей с устранением нарушений (Суд)|0
 КоАП РО|Статья 45. Незаконное предпринимательство, не образующее преступления|Штраф гражданину от 30.000 до 80.000 рублей с возможным приостановлением (Суд)|0
 КоАП РО|Статья 45.1. Ненадлежащая реклама незаконной деятельности|Штраф от 50.000 до 150.000 рублей (Судебный порядок)|0
 КоАП РО|Статья 45.2. Нарушение обязательных условий лицензии|Штраф от 30.000 до 100.000 рублей с приостановлением до 7 дней (Суд)|0
-КоАП РО|Статья 46. ч.1. Управление транспортным средством без права управления|Штраф от 20.000 до 40.000 рублей с отстранением либо арест до 10 суток|1
-КоАП РО|Статья 46. ч.2. Непредъявление водителем водительского удостоверения и документов сотруднику|Штраф от 5.000 до 10.000 рублей|1
-КоАП РО|Статья 47. Управление транспортным средством в состоянии опьянения|Штраф от 50.000 до 100.000 рублей с лишением прав до 30 дней (Суд)|0
+КоАП РО|Статья 46. Управление транспортным средством без необходимого права или документов|Штраф от 5.000 до 40.000 руб либо арест до 10 суток|1|ч. 1 Управление ТС лицом без права управления^Штраф от 20.000 до 40.000 руб с отстранением либо арест до 10 суток~ч. 2 Непредъявление водителем В/У или документов на ТС^Штраф от 5.000 до 10.000 рублей
+КоАП РО|Статья 47. Управление транспортным средством в состоянии опьянения|Штраф от 50.000 до 100.000 рублей с лишением прав до 30 дней (Суд)|1
 КоАП РО|Статья 48. Оставление места дорожно-транспортного происшествия (ДТП)|Штраф от 10.000 до 30.000 рублей либо лишение права управления|1
 КоАП РО|Статья 49. Опасное вождение и создание аварийной ситуации|Штраф от 20.000 до 50.000 рублей|1
 КоАП РО|Статья 50. Непредоставление преимущества транспортному средству экстренной службы со спецсигналами|Штраф от 15.000 до 30.000 рублей|1
-КоАП РО|Статья 51. ч.1. Управление ТС без обязательной регистрации или гос. номеров|Штраф от 10.000 до 25.000 рублей|0
-КоАП РО|Статья 51. ч.2. Использование заведомо подложного номерного знака|Штраф от 25.000 до 50.000 рублей|0
+КоАП РО|Статья 51. Нарушение правил государственной регистрации транспортного средства|Штраф от 10.000 до 50.000 рублей|1|ч. 1 Управление ТС без обязательной регистрации или гос. номеров^Штраф от 10.000 до 25.000 рублей~ч. 2 Использование заведомо подложного номерного знака^Штраф от 25.000 до 50.000 рублей
 КоАП РО|Статья 52.1. Существенное превышение установленной скорости (более чем на 20 км/ч)|Штраф от 500 до 5.000 рублей|1
 КоАП РО|Статья 52.2. Проезд на запрещающий сигнал или движение по встречной полосе|Штраф от 2.000 до 7.000 рублей|1
 КоАП РО|Статья 52.3. Нарушение правил остановки или стоянки с созданием существенной помехи|Штраф от 1.000 до 5.000 рублей с перемещением ТС на штрафстоянку|1
@@ -1463,37 +1493,68 @@ InitDatabase() {
 
     k5 =
     (
-КоАП РО|Статья 55. ч.1. Невыполнение обязанностей в связи с ДТП (не остановился, не выставил знак)|Штраф от 5.000 до 15.000 рублей|0
-КоАП РО|Статья 55. ч.2. Неоказание первой помощи либо невызов скорой при ДТП с пострадавшими|Штраф от 15.000 до 30.000 рублей|0
-КоАП РО|Статья 55. ч.3. Употребление веществ/алкоголя после ДТП или остановки до освидетельствования|Штраф от 50.000 до 100.000 рублей с лишением прав до 30 дней (Суд)|0
-КоАП РО|Статья 56. ч.1. Передача управления ТС лицу без права управления|Штраф от 10.000 до 25.000 рублей|0
-КоАП РО|Статья 56. ч.2. Передача управления ТС лицу в состоянии опьянения|Штраф от 30.000 до 60.000 рублей|0
-КоАП РО|Статья 57. Использование телефона или рации водителем при удержании рукой во время движения|Штраф от 1.000 до 30.000 рублей|0
-КоАП РО|Статья 58. ч.1. Нарушение правил маневрирования (не подал поворотник, не уступил при перестроении)|Штраф от 500 до 2.000 рублей|0
-КоАП РО|Статья 58. ч.2. Разворот, движение задним ходом в запрещенном ПДД месте|Штраф от 500 до 3.000 рублей|0
-КоАП РО|Статья 58. ч.3. Нарушение правил маневрирования, создавшее реальную аварийную ситуацию|Штраф от 3.000 до 10.000 рублей|0
-КоАП РО|Статья 59. ч.1. Непредоставление преимущества участнику движения на перекрестке|Штраф от 5.000 до 15.000 рублей|0
-КоАП РО|Статья 59. ч.2. Выезд на перекресток при образовавшемся заторе с созданием поперечной помехи|Штраф от 5.000 до 15.000 рублей|0
-КоАП РО|Статья 60. ч.1. Нарушение расположения ТС на проезжей части (обочина, разделительная полоса)|Штраф от 500 до 2.000 рублей|1
-КоАП РО|Статья 60. ч.2. Движение ТС по тротуару, пешеходной или велосипедной дорожке|Штраф от 1.000 до 4.000 рублей|1
-КоАП РО|Статья 60. ч.3. Движение ТС по тротуару, создавшее реальную угрозу жизни пешехода|Штраф от 20.000 до 40.000 рублей|1
-КоАП РО|Статья 61. ч.1. Нарушение правил обгона и опережения без выезда на встречную полосу|Штраф от 2.000 до 6.000 рублей|0
-КоАП РО|Статья 61. ч.2. Обгон на пешеходном переходе, переезде, мосту, в тоннеле|Штраф от 3.000 до 7.000 рублей|0
-КоАП РО|Статья 62. Нарушение правил движения через железнодорожные пути (вне переезда, на запрещающий)|Штраф от 5.000 до 10.000 рублей|0
-КоАП РО|Статья 63. Нарушение правил движения по автомагистрали (остановка, разворот, задний ход)|Штраф от 1.000 до 4.000 рублей (с аварией от 5.000 до 15.000 руб)|0
-КоАП РО|Статья 64. ч.1. Незаконная установка или использование спецсигналов (мигалки, сирены)|Штраф от 20.000 до 50.000 рублей с конфискацией спецсигнала|0
-КоАП РО|Статья 64. ч.2. Использование спецсигнала сотрудником без служебной необходимости|Штраф должностному лицу от 30.000 до 70.000 рублей (Прокуратура)|0
-КоАП РО|Статья 65. Нарушение правил пользования внешними световыми приборами и звуковым сигналом|Штраф от 1.000 до 3.000 рублей|0
-КоАП РО|Статья 66. ч.1. Нарушение правил дорожного движения пешеходом|Штраф от 500 до 3.000 рублей|1
-КоАП РО|Статья 66. ч.2. Нарушение правил дорожного движения пешеходом, создавшее аварию|Штраф от 3.000 до 7.000 рублей|1
-КоАП РО|Статья 67. ч.1. Несоблюдение требований дорожных знаков, разметки, стоп-линии|Штраф от 500 до 3.000 рублей|0
-КоАП РО|Статья 67. ч.2. Несоблюдение требований дорожных знаков/разметки с созданием аварии|Штраф от 3.000 до 7.000 рублей|0
-КоАП РО|Статья 68. Непредоставление преимущества пешеходу, велосипедисту или маршрутному ТС|Штраф от 2.000 до 6.000 рублей|0
-КоАП РО|Статья 69. Нарушение правил буксировки, перевозки груза или пассажиров|Штраф от 5.000 до 15.000 рублей|0
-КоАП РО|Статья 70. ч.1. Самовольное вклинивание в организованную транспортную колонну|Штраф от 10.000 до 25.000 рублей|1
-КоАП РО|Статья 70. ч.2. Игнорирование требования покинуть колонну либо создание аварии|Штраф от 20.000 до 40.000 рублей|1
+КоАП РО|Статья 55. Невыполнение обязанностей в связи с ДТП|Штраф от 5.000 до 100.000 руб с лишением прав|1|ч. 1 Не остановился, не выставил знак, не зафиксировал следы^Штраф от 5.000 до 15.000 рублей~ч. 2 Неоказание первой помощи либо невызов скорой при ДТП с пострадавшими^Штраф от 15.000 до 30.000 рублей~ч. 3 Употребление веществ/алкоголя после ДТП или остановки до теста^Штраф от 50.000 до 100.000 руб с лишением прав до 30 дней (Суд)
+КоАП РО|Статья 56. Передача управления ТС лицу без права или в опьянении|Штраф от 10.000 до 60.000 рублей|1|ч. 1 Передача управления ТС лицу без права управления^Штраф от 10.000 до 25.000 рублей~ч. 2 Передача управления ТС лицу в состоянии опьянения^Штраф от 30.000 до 60.000 рублей
+КоАП РО|Статья 57. Использование телефона или рации водителем при удержании рукой во время движения|Штраф от 1.000 до 30.000 рублей|1
+КоАП РО|Статья 58. Нарушение правил маневрирования|Штраф от 500 до 10.000 рублей|1|ч. 1 Не подал сигнал поворота, маневр не из крайнего положения^Штраф от 500 до 2.000 рублей~ч. 2 Разворот или движение задним ходом в запрещенном месте^Штраф от 500 до 3.000 рублей~ч. 3 Нарушение правил маневрирования с созданием реальной аварии^Штраф от 3.000 до 10.000 рублей
+КоАП РО|Статья 59. Нарушение правил проезда перекрестков и предоставления преимущества|Штраф от 5.000 до 15.000 рублей|1|ч. 1 Непредоставление преимущества участнику движения на перекрестке^Штраф от 5.000 до 15.000 рублей~ч. 2 Выезд на перекресток при образовавшемся заторе с поперечной помехой^Штраф от 5.000 до 15.000 рублей
+КоАП РО|Статья 60. Нарушение правил расположения транспортного средства на проезжей части|Штраф от 500 до 40.000 рублей|1|ч. 1 Движение по обочине, разделительной полосе^Штраф от 500 до 2.000 рублей~ч. 2 Движение ТС по тротуару, пешеходной или велосипедной дорожке^Штраф от 1.000 до 4.000 рублей~ч. 3 Движение по тротуару, создавшее реальную угрозу жизни пешехода^Штраф от 20.000 до 40.000 рублей
+КоАП РО|Статья 61. Нарушение правил обгона и опережения|Штраф от 2.000 до 7.000 рублей|1|ч. 1 Нарушение правил обгона/опережения без выезда на встречную полосу^Штраф от 2.000 до 6.000 рублей~ч. 2 Обгон на пешеходном переходе, переезде, мосту, в тоннеле^Штраф от 3.000 до 7.000 рублей
+КоАП РО|Статья 62. Нарушение правил движения через железнодорожные пути|Штраф от 5.000 до 10.000 рублей|1|ч. 1 Движение вне переезда, стоянка, задний ход на путях^Штраф от 5.000 до 10.000 рублей~ч. 2 Выезд на переезд при запрещающем сигнале либо угрозе столкновения^Штраф от 5.000 до 10.000 рублей
+КоАП РО|Статья 63. Нарушение правил движения по автомагистрали|Штраф от 1.000 до 15.000 рублей|1|ч. 1 Остановка, разворот, движение задним ходом на автомагистрали^Штраф от 1.000 до 4.000 рублей~ч. 2 То же деяние, создавшее реальную аварийную ситуацию^Штраф от 5.000 до 15.000 рублей
+КоАП РО|Статья 64. Нарушение порядка использования специальных световых и звуковых сигналов|Штраф от 20.000 до 70.000 рублей|1|ч. 1 Незаконная установка или использование спецсигналов гражданином^Штраф от 20.000 до 50.000 руб с конфискацией устройства~ч. 2 Использование спецсигнала сотрудником без служебной необходимости^Штраф должностному лицу от 30.000 до 70.000 рублей (Прокуратура)
+КоАП РО|Статья 65. Нарушение правил пользования внешними световыми приборами и звуковым сигналом|Штраф от 1.000 до 3.000 рублей|1
+КоАП РО|Статья 66. Нарушение правил дорожного движения пешеходом|Штраф от 500 до 7.000 рублей|1|ч. 1 Переход проезжей части в неположенном месте, помеха сирене^Штраф от 500 до 3.000 рублей~ч. 2 Нарушение ПДД пешеходом, непосредственно создавшее аварию^Штраф от 3.000 до 7.000 рублей
+КоАП РО|Статья 67. Несоблюдение требований дорожных знаков и разметки|Штраф от 500 до 7.000 рублей|1|ч. 1 Несоблюдение требований дорожных знаков, разметки, стоп-линии^Штраф от 500 до 3.000 рублей~ч. 2 Несоблюдение знаков/разметки с созданием реальной аварии^Штраф от 3.000 до 7.000 рублей
+КоАП РО|Статья 68. Непредоставление преимущества пешеходу, велосипедисту или маршрутному ТС|Штраф от 2.000 до 6.000 рублей|1
+КоАП РО|Статья 69. Нарушение правил буксировки, перевозки груза или пассажиров|Штраф от 5.000 до 15.000 рублей|1
+КоАП РО|Статья 70. Воспрепятствование движению организованной транспортной колонны|Штраф от 10.000 до 40.000 рублей|1|ч. 1 Самовольное вклинивание в колонну или создание препятствия^Штраф от 10.000 до 25.000 рублей~ч. 2 Игнорирование требования покинуть колонну либо создание аварии^Штраф от 20.000 до 40.000 рублей
     )
     LoadData(k5)
+    k6 =
+    (
+КоАП РО|Статья 14.8. Встречка|2-7к (Штраф 2.000 – 7.000 руб.)|1
+КоАП РО|Статья 14.9. Правила стоянки и остановки|1-5к (Штраф 1.000 – 5.000 руб.)|1
+КоАП РО|Статья 14.18.1. По обочине, разделительной полосе, автобусной|0.5-2к (Штраф 500 – 2.000 руб.)|1
+КоАП РО|Статья 14.18.2. По тротуару, пешеходной, велосипедной|1-4к (Штраф 1.000 – 4.000 руб.)|1
+КоАП РО|Статья 14.25.1. Несоблюдение дорожного занка, разметки|0.5-3к (Штраф 500 – 3.000 руб.)|1
+КоАП РО|Статья 14.16.1. Нарушение правил разворота,поворота|0.5-2к (Штраф 500 – 2.000 руб.)|1
+КоАП РО|Статья 14.25.2. 14.25.1 только повлекшее ДТП|3-7к (Штраф 3.000 – 7.000 руб.)|1
+КоАП РО|Статья 14.1. Управление без прав|20-40к (Штраф 20.000 – 40.000 руб.)|1
+КоАП РО|Статья 14.2. Непредоставление документов|5-10к (Штраф 5.000 – 10.000 руб.)|1
+КоАП РО|Статья 14.3. Оставление места ДТП|10-30к (Штраф 10.000 – 30.000 руб.)|1
+КоАП РО|Статья 14.4. Опасное вождение, аварийные ситуации|20-50к (Штраф 20.000 – 50.000 руб.)|1
+КоАП РО|Статья 14.6.2. Отсутсвие регистрации или знака|10-25к (Штраф 10.000 – 25.000 руб.)|1
+КоАП РО|Статья 14.6.2. Незарегистрированный номер|25-50к (Штраф 25.000 – 50.000 руб.)|1
+КоАП РО|Статья 14.11. Эксплуатация неисправного тс|3-7к (Штраф 3.000 – 7.000 руб.)|1
+КоАП РО|Статья 14.12. Нарушение правил повлекшее ущерб|15-40к (Штраф 15.000 – 40.000 руб.)|1
+КоАП РО|Статья 14.26. Непредоставление преимущества пешеходу|2-6к (Штраф 2.000 – 6.000 руб.)|1
+КоАП РО|Статья 14.5. Непредоставление преимущества экстренной службе|15-30к (Штраф 15.000 – 30.000 руб.)|1
+КоАП РО|Статья 14.7. Превышение скорости|0.5-5к (Штраф 500 – 5.000 руб.)|1
+КоАП РО|Статья 14.10. Повторное нарушение 49, 50, 52.1, 52.2, опасность для участников|20-40к (Штраф 20.000 – 40.000 руб.)|1
+КоАП РО|Статья 14.13.1. Невыполнение обязанностей в связи с ДТП|5-15к (Штраф 5.000 – 15.000 руб.)|1
+КоАП РО|Статья 14.13.2. Неоказание первой помощи или вызове медиков при ДТП|15-30к (Штраф 15.000 – 30.000 руб.)|1
+КоАП РО|Статья 14.16.1. Неуступил дорогу при повороте,развороте,выезде|0.5-2к (Штраф 500 – 2.000 руб.)|1
+КоАП РО|Статья 14.16.2. Разворот,движение задним ходом где запрещено|0.5-3к (Штраф 500 – 3.000 руб.)|1
+КоАП РО|Статья 14.16.3. Нарушение 14.16.1 или 2 создавшая аварию|3-10к (Штраф 3.000 – 10.000 руб.)|1
+КоАП РО|Статья 14.17.1. Непредоставление преимущества на перекрестке|5-15к (Штраф 5.000 – 15.000 руб.)|1
+КоАП РО|Статья 14.19.1. Обгон или опережение без обеспечения безопасности маневра|2-6к (Штраф 2.000 – 6.000 руб.)|1
+КоАП РО|Статья 14.19.2. Обгон в запрещённых местах|3-7к (Штраф 3.000 – 7.000 руб.)|1
+КоАП РО|Статья 14.21.1. На автомагистрале - остановка,движение задним ходом,разворот|1-4к (Штраф 1.000 – 4.000 руб.)|1
+КоАП РО|Статья 14.22.2. Использование маячков и спец сигнала без необходимости|30-70к (Штраф 30.000 – 70.000 руб.)|1
+КоАП РО|Статья 14.23. Нарушение свет и звук|1-3к (Штраф 1.000 – 3.000 руб.)|1
+КоАП РО|Статья 14.28.1. Воспрепятствование движению колонны|10-25к (Штраф 10.000 – 25.000 руб.)|1
+КоАП РО|Статья 7.1.1. Мелкое хулиганство|5-15к / 10 суток|1
+КоАП РО|Статья 7.1.2. То же самое совершенное повторно|15-30к / 10 суток|1
+КоАП РО|Статья 7.10. Наркота до 3 грамм|20-40к / 10 суток|1
+КоАП РО|Статья 7.11.1. Причинение незначительного вреда здоровью|15-30к / 10 суток|1
+КоАП РО|Статья 7.11.2. Тоже самое по неосторожности|10-20к|1
+КоАП РО|Статья 8.1. Оскорбление|10-20к|1
+КоАП РО|Статья 8.5. Повреждение имущества|10-30к|1
+КоАП РО|Статья 32.1. Нарушение правил использования оружия|30-60к|1
+КоАП РО|Статья 38. Воспрепятствование гос служащему|15-35 / 10 суток|1
+    )
+    LoadData(k6)
 
     u1 =
     (
@@ -1505,8 +1566,8 @@ InitDatabase() {
 УК РО|Статья 1.5. Принцип справедливости|Соответствие тяжести содеянному; никто не может нести наказание дважды|0
 УК РО|Статья 1.6. Принцип гуманизма|Безопасность человека; запрет физических страданий и унижения достоинства|0
 УК РО|Статья 1.7. Основание уголовной ответственности|Совершение деяния со всеми признаками предусмотренного состава преступления|0
-УК РО|Статья 1.8. Состав преступления (объект, субъект, стороны, виды)|Материальные, формальные и усеченные составы преступлений|0
-УК РО|Статья 1.9. Судимость|Штраф не влечет судимости; судимость запрещает государственную службу|0
+УК РО|Статья 1.8. Состав преступления (объект, субъект, стороны, виды)|Материальные, формальные и усеченные составы преступлений|0|ч. 1 Элементы состава: объект, субъект, объективная и субъективная стороны^Отсутствие одного признака исключает состав преступления~ч. 2 Виды составов: материальные, формальные, усеченные^Разграничение по моменту окончания преступления
+УК РО|Статья 1.9. Судимость|Штраф не влечет судимости; судимость запрещает государственную службу|0|ч. 1 Понятие судимости^Правовой статус осужденного лица~ч. 3 Уголовный штраф без судимости^Судимость при уголовном штрафе не возникает~ч. 4 Запрет государственной службы^Судимость запрещает нахождение на государственной службе
 УК РО|Статья 1.10. Действие уголовного закона во времени|Определяется законом на момент совершения общественно опасного деяния|0
 УК РО|Статья 1.11. Обратная сила уголовного закона|Закон, смягчающий наказание или устраняющий преступность, имеет обратную силу|0
 УК РО|Статья 2. Понятие преступления|Виновное общественно опасное деяние под угрозой наказания; исключение малозначительности|0
@@ -1528,7 +1589,7 @@ InitDatabase() {
     u2 =
     (
 УК РО|Статья 3.6. Совершение преступления группой лиц, по сговору, ОПГ, ОПС|Влечет более строгое наказание в пределах, предусмотренных УК|0
-УК РО|Статья 3.8. Эксцесс исполнителя преступления|Совершение исполнителем деяния, не охваченного умыслом остальных соучастников|0
+УК РО|Статья 3.7. Эксцесс исполнителя преступления|Совершение исполнителем деяния, не охваченного умыслом остальных соучастников|0
 УК РО|Статья 4. Необходимая оборона|Защита от опасного для жизни насилия; самооборона в жилище правомерна|0
 УК РО|Статья 4.1. Причинение вреда при задержании лица, совершившего преступление|Правомерный вред для доставления в органы власти при соразмерности|0
 УК РО|Статья 4.2. Крайняя необходимость|Устранение опасности причинением меньшего вреда, если иной путь невозможен|0
@@ -1536,16 +1597,16 @@ InitDatabase() {
 УК РО|Статья 4.4. Исполнение приказа или распоряжения|Ответственность несет лицо, отдавшее незаконный приказ; исполнение незаконного наказуемо|0
 УК РО|Статья 4.5. Физическое или психическое принуждение|Исключает ответственность, если лицо не могло руководить действиями|0
 УК РО|Статья 4.6. Нормы о наркотических веществах (каннабиноиды)|До 3 г изымаются без УК; 1 куст Green = 5 г, 1 семечко Green = 2 г|0
-УК РО|Статья 5. Виды наказаний|Судебный/уголовный штраф, лишение права, увольнение, тюрьма, работы|0
+УК РО|Статья 5. Виды наказаний|Судебный/уголовный штраф, лишение права, увольнение, тюрьма, работы|0|ч. 1 Перечень видов наказаний^Штрафы, лишение права, увольнение, лишение свободы, работы~ч. 3 Уголовный штраф вне суда^Назначается МВД, ФСБ, ФСО, Прокуратурой и судом
 УК РО|Статья 5.1. Исправительные работы|Назначаются по основному месту работы либо в местах, определяемых судом|0
 УК РО|Статья 5.1.2. Принудительные работы|Применяются как альтернатива лишению свободы с привлечением к труду|0
-УК РО|Статья 5.2. Общие начала назначения наказания|Внесудебно лишение свободы не более 5 лет (за исключением ст. 17.3 УК)|0
+УК РО|Статья 5.2. Общие начала назначения наказания|Внесудебно лишение свободы не более 5 лет (за исключением ст. 17.3 УК)|0|ч. 4 Внесудебный предел лишения свободы^Не более 5 лет (за исключением ст. 17.3 УК во время процесса)~ч. 5 Упрощенное разрешение уголовного материала^Только лишение свободы до 5 лет в пределах статьи
 УК РО|Статья 5.2.1. Назначение наказания за неоконченное преступление|Приготовление не более половины, покушение не более 3/4 максимума|0
 УК РО|Статья 5.3. Обстоятельства, смягчающие наказание|Принуждение, явка с повинной, помощь потерпевшему, возмещение ущерба|0
 УК РО|Статья 5.4. Обстоятельства, отягчающие наказание|Группа лиц, вражда, месть служащему, особая жестокость, форма, опьянение|0
 УК РО|Статья 5.5. Назначение более мягкого наказания|Ниже низшего предела при исключительных обстоятельствах|0
 УК РО|Статья 5.6. Освобождение в связи с назначением штрафа/работ или примирением|Впервые совершившее лицо может быть освобождено судом со штрафом от 10.000|0
-УК РО|Статья 5.7. Сроки давности привлечения к уголовной ответственности|15 лет (15 дней); розыск боло-приоритета от 1 до 5 звезд|0
+УК РО|Статья 5.7. Сроки давности привлечения к уголовной ответственности|15 лет (15 дней); розыск боло-приоритета от 1 до 5 звезд|0|ч. 1 Срок давности 15 дней^Освобождение по истечении 15 календарных дней~ч. 3 Приоритет розыска от 1 до 5 звезд^Устанавливается сотрудниками МВД и ФСБ
 УК РО|Статья 5.8. Судимость|Отметка о судимости ставится при аресте по статьям от 4 звезд и выше|0
 УК РО|Статья 5.9. Освобождение при добровольной сдаче предметов (оружие, наркотики)|Добровольная сдача по ст. 12.8, 12.8.1, 13.1, 13.2 освобождает от УК|0
 УК РО|Статья 5.10. Освобождение под залог|Применяется по статьям без судимости в соотношении 1 год к 25.000|0
@@ -1594,20 +1655,15 @@ InitDatabase() {
 УК РО|Статья 10.3 (Ф/Р) Кража чужого имущества стоимостью свыше 15.000|до 30 месяцев лишения свободы (3 звезды)|0
 УК РО|Статья 10.4 (Ф) Мошенничество (хищение чужого имущества путем обмана)|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 10.5 (Ф/Р) Грабеж (открытое хищение чужого имущества)|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 10.6 (Ф/Р) Разбойное ограбление с применением опасного насилия|до 40 месяцев с созданием записи о судимости (4 звезды)|1
-УК РО|Статья 10.6.1 (Ф/Р) Разбойное ограбление крупных финансовых объектов (банки)|до 50 месяцев с созданием записи о судимости (5 звезд)|1
-УК РО|Статья 10.7 (Р) Неправомерное завладение ТС (угон/поездка без цели хищения)|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 10.7.1 (Р) Завладение государственным или оперативным служебным ТС|до 40 месяцев с созданием записи о судимости (4 звезды)|1
-УК РО|Статья 10.8 (Р) Умышленные уничтожение или повреждение чужого имущества|до 20 месяцев лишения свободы (2 звезды)|1
-УК РО|Статья 10.8.1 (Ф/Р/С) Умышленные уничтожение или повреждение государственного имущества|до 30 месяцев лишения свободы (3 звезды)|1
+УК РО|Статья 10.6 (Ф/Р) Разбойное ограбление с применением опасного насилия|до 50 месяцев лишения свободы|1|ст. 10.6 Обычный разбой с насилием^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 10.6.1 Разбой крупных финансовых объектов (банки)^до 50 месяцев с созданием записи о судимости (5 звезд)
+УК РО|Статья 10.7 (Р) Неправомерное завладение ТС (угон)|до 40 месяцев лишения свободы|1|ст. 10.7 Угон гражданского ТС^до 30 месяцев лишения свободы (3 звезды)~ст. 10.7.1 Завладение государственным или оперативным служебным ТС^до 40 месяцев с созданием записи о судимости (4 звезды)
+УК РО|Статья 10.8 (Р) Умышленные уничтожение или повреждение имущества|до 30 месяцев лишения свободы|1|ст. 10.8 Повреждение чужого частного имущества^до 20 месяцев лишения свободы (2 звезды)~ст. 10.8.1 Повреждение государственного имущества^до 30 месяцев лишения свободы (3 звезды)
 УК РО|Статья 10.9 (Ф/Р) Уничтожение чужого имущества путем поджога, взрыва|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 10.10 (Ф) Вымогательство под угрозой насилия или уничтожения имущества|до 30 месяцев лишения свободы (3 звезды)|1
 УК РО|Статья 10.11 (Ф/С) Незаконное изъятие имущества или лицензий сотрудником органов|от штрафа до 30 месяцев с возмещением ущерба (3 звезды)|0
-УК РО|Статья 10.12 (Ф/Р) Кража с проникновением в частное жилище или помещение|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 10.12.1 (Ф/Р) Кража группой лиц с проникновением в жилище|до 40 месяцев с созданием записи о судимости (4 звезды)|1
+УК РО|Статья 10.12 (Ф/Р) Кража с проникновением в частное жилище или помещение|до 40 месяцев лишения свободы|1|ст. 10.12 Кража с проникновением в жилище^до 30 месяцев лишения свободы (3 звезды)~ст. 10.12.1 Кража группой лиц с проникновением в жилище^до 40 месяцев с созданием записи о судимости (4 звезды)
 УК РО|Статья 11.1 (Ф/С) Предпринимательская деятельность без регистрации|до 30 месяцев лишения свободы (3 звезды)|0
-УК РО|Статья 11.2 (Ф/С) Принуждение к совершению сделки без оружия|до 30 месяцев лишения свободы (3 звезды)|0
-УК РО|Статья 11.2.1 (Ф/С) Принуждение к сделке с применением огнестрельного оружия|до 30 месяцев лишения свободы (3 звезды)|0
+УК РО|Статья 11.2 (Ф/С) Принуждение к совершению сделки или к отказу от нее|до 30 месяцев лишения свободы (3 звезды)|0|ст. 11.2 Принуждение к сделке без применения оружия^до 30 месяцев лишения свободы (3 звезды)~ст. 11.2.1 Принуждение к сделке с применением огнестрельного оружия^до 30 месяцев лишения свободы (3 звезды)
 УК РО|Статья 11.3 (Ф/С) Уклонение от уплаты налогов (взыскание в 2-кратном размере)|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 11.4 (Ф/С) Сокрытие денежных средств или имущества от взыскания налогов|до 30 месяцев лишения свободы (3 звезды)|0
 УК РО|Статья 11.5 (Ф/С) Ограничение конкуренции с крупным ущербом|до 40 месяцев с созданием записи о судимости (4 звезды)|0
@@ -1627,16 +1683,11 @@ InitDatabase() {
 УК РО|Статья 12.2 (Ф/С) Склонение, вербовка или финансирование терроризма|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 12.3 (Ф/С) Захват или удержание лица в качестве заложника|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 12.4 (Ф/Р/С) Заведомо ложное сообщение о готовящемся теракте или взрыве|до 30 месяцев лишения свободы (3 звезды)|0
-УК РО|Статья 12.5 (Ф/Р/С) Организация массовых беспорядков или участие в них|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 12.5.1 (Ф/Р/С) Массовые беспорядки с причинением ущерба или смерти|до 50 месяцев с созданием записи о судимости (5 звезд)|0
+УК РО|Статья 12.5 (Ф/Р/С) Организация массовых беспорядков или участие в них|до 50 месяцев лишения свободы (5 звезд)|0|ст. 12.5 Участие и организация массовых беспорядков^до 50 месяцев с созданием записи о судимости (5 звезд)~ст. 12.5.1 Массовые беспорядки с ущербом, вредом или смертью^до 50 месяцев с созданием записи о судимости (5 звезд)
 УК РО|Статья 12.6 (Р) Хулиганство, грубое систематическое нарушение порядка|до 20 месяцев лишения свободы (2 звезды)|1
-УК РО|Статья 12.7 (Ф/Р/С) Незаконное проникновение на закрытый объект РО|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 12.7.1 (Ф/Р/С) Незаконное проникновение на режимный объект со спецстатусом|до 50 месяцев с созданием записи о судимости (5 звезд)|1
-УК РО|Статья 12.7.2 (Ф) Проникновение на территорию оцепления военного или ЧП положения|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 12.8 (Ф/Р/С) Незаконный оборот оружия, боеприпасов и легких бронежилетов|до 40 месяцев с созданием записи о судимости (4 звезды)|1
-УК РО|Статья 12.8.1 (Ф/Р/С) Незаконный оборот спецсредств государства (дефибрилляторы, тяжелая броня)|до 50 месяцев с созданием записи о судимости (5 звезд)|1
-УК РО|Статья 12.9 (Ф/Р) Хищение огнестрельного оружия, комплектующих или взрывчатки|до 40 месяцев с созданием записи о судимости (4 звезды)|0
-УК РО|Статья 12.9.1 (Ф) Хищение оружия со склада улик сотрудниками органов|до 50 месяцев с созданием записи о судимости (5 звезд)|0
+УК РО|Статья 12.7 (Ф/Р/С) Незаконное проникновение на закрытый объект РО|до 50 месяцев лишения свободы|1|ст. 12.7 Проникновение на закрытый объект РО^до 30 месяцев лишения свободы (3 звезды)~ст. 12.7.1 Проникновение на режимный объект со спецстатусом^до 50 месяцев с созданием записи о судимости (5 звезд)~ст. 12.7.2 Проникновение за оцепление военного или ЧП положения^до 50 месяцев с созданием записи о судимости (5 звезд)
+УК РО|Статья 12.8 (Ф/Р/С) Незаконный оборот оружия, боеприпасов и спецсредств|до 50 месяцев лишения свободы|1|ст. 12.8 Оборот легких бронежилетов, оружия и патронов^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 12.8.1 Оборот гос. спецсредств (дефибрилляторы, тяжелая броня)^до 50 месяцев с созданием записи о судимости (5 звезд)
+УК РО|Статья 12.9 (Ф/Р) Хищение огнестрельного оружия или взрывчатки|до 50 месяцев лишения свободы|0|ст. 12.9 Хищение оружия или боеприпасов^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 12.9.1 Хищение оружия со склада улик сотрудниками органов^до 50 месяцев с созданием записи о судимости (5 звезд)
 УК РО|Статья 12.10 (Ф/С) Организация несанкционированных митингов или призывы к бунту|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 12.11 (Ф/С) Организация геноцида либо попытка его организации|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 12.12 (Ф/С) Создание преступной организации либо руководство ею|до 50 месяцев с созданием записи о судимости (5 звезд)|0
@@ -1647,18 +1698,16 @@ InitDatabase() {
 
     u6 =
     (
-УК РО|Статья 12.15 (Ф/Р/С) Участие в несанкционированных митингах и шествиях|до 20 месяцев лишения свободы (2 звезды)|0
-УК РО|Статья 12.15.1 (Ф/Р/С) Участие в несанкционированном митинге с игнорированием требований|до 50 месяцев лишения свободы (5 звезд)|0
+УК РО|Статья 12.15 (Ф/Р/С) Участие в несанкционированных митингах и шествиях|до 50 месяцев лишения свободы|0|ст. 12.15 Участие в незаконных шествиях и демонстрациях^до 20 месяцев лишения свободы (2 звезды)~ст. 12.15.1 Участие с игнорированием законных требований^до 50 месяцев лишения свободы (5 звезд)
 УК РО|Статья 13.1 (Ф/С) Незаконное кустарное производство и сбор наркотиков|до 30 месяцев лишения свободы (3 звезды)|0
 УК РО|Статья 13.2 (Ф/Р/С) Незаконное хранение, приобретение, перевозка наркотиков (свыше 3 г)|до 30 месяцев лишения свободы (3 звезды)|1
 УК РО|Статья 13.3 (Ф/С) Незаконный оборот наркотиков в особо крупном размере (свыше 20 г)|до 50 месяцев с созданием записи о судимости (5 звезд)|1
 УК РО|Статья 13.4 (Р/С) Пропаганда наркотических средств или растений|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 13.5 (Ф/С) Оборот наркотических средств сотрудниками госструктур|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 13.6 (Ф/С) Оборот синтетических наркотических веществ|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 13.8 (Ф/Р/С) Незаконный сбыт и распространение наркотических средств|до 40 месяцев с созданием записи о судимости (4 звезды)|1
+УК РО|Статья 13.7 (Ф/Р/С) Незаконный сбыт и распространение наркотических средств|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 14.1 (Ф/Р/С) Посягательство на жизнь государственного или общественного деятеля|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 14.2 (Ф/Р/С) Насильственный захват власти или вооруженный мятеж|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 14.2.1 (Ф/С) Агитация или руководство движением по захвату власти|до 40 месяцев с созданием записи о судимости (4 звезды)|0
+УК РО|Статья 14.2 (Ф/Р/С) Насильственный захват власти или вооруженный мятеж|до 50 месяцев лишения свободы|0|ст. 14.2 Захват власти или мятеж^до 50 месяцев с созданием записи о судимости (5 звезд)~ст. 14.2.1 Агитация или руководство движением по захвату власти^до 40 месяцев с созданием записи о судимости (4 звезды)
 УК РО|Статья 14.3 (Ф/С) Разглашение сведений, составляющих государственную тайну|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 14.4 (Ф/С) Приобретение, сбыт или использование формы госструктур, жетонов|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 14.5 (Ф/С) Государственная измена / шпионаж|до 50 месяцев с созданием записи о судимости (5 звезд)|0
@@ -1666,8 +1715,7 @@ InitDatabase() {
 УК РО|Статья 14.7 (Ф/С) Нарушение законодательства о выборах, подлог документов|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 14.8 (Ф/С) Незаконный оборот государственных секретов и закрытых данных|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 14.9 (Ф/С) Продажа, хранение глушащих устройств и радар-детекторов|до 40 месяцев с созданием записи о судимости (4 звезды)|0
-УК РО|Статья 15.1 (Ф/С) Превышение должностных полномочий|до 40 месяцев с созданием записи о судимости (4 звезды)|1
-УК РО|Статья 15.1.1 (Ф/С) Злоупотребление служебными полномочиями|до 50 месяцев с созданием записи о судимости (5 звезд)|1
+УК РО|Статья 15.1 (Ф/С) Превышение и злоупотребление должностными полномочиями|до 50 месяцев лишения свободы|1|ст. 15.1 Превышение должностных полномочий^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 15.1.1 Злоупотребление служебными полномочиями^до 50 месяцев с созданием записи о судимости (5 звезд)
 УК РО|Статья 15.2 (Ф/Р/С) Умышленное неисполнение законного приказа начальника полицейским|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 15.3 (Ф/С) Самовольное присвоение гражданином полномочий должностного лица|до 30 месяцев лишения свободы (3 звезды)|0
 УК РО|Статья 15.4 (Ф/С) Получение взятки должностным лицом|до 50 месяцев с созданием записи о судимости (5 звезд)|1
@@ -1681,12 +1729,10 @@ InitDatabase() {
 УК РО|Статья 15.7 (Ф/Р/С) Подкуп голосов избирателей во время выборов|до 10 месяцев лишения свободы (1 звезда)|0
 УК РО|Статья 15.8 (Ф/С) Неисполнение сотрудников указов и нормативных актов Правительства/IB|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 15.9 (Ф/С) Неисполнение руководством госструктур актов Премьер-министра|до 40 месяцев с созданием записи о судимости (4 звезды)|0
-УК РО|Статья 16.1 (Ф/С) Вмешательство в деятельность суда или следствия|до 50 месяцев с созданием записи о судимости (5 звезд)|0
-УК РО|Статья 16.1.2 (Ф/С) Воспрепятствование деятельности прокурора или следователя|до 40 месяцев с созданием записи о судимости (4 звезды)|0
+УК РО|Статья 16.1 (Ф/С) Вмешательство в деятельность суда или следствия|до 50 месяцев лишения свободы|0|ст. 16.1 Вмешательство в суд или следствие^до 50 месяцев с созданием записи о судимости (5 звезд)~ст. 16.1.2 Воспрепятствование деятельности прокурора или следователя^до 40 месяцев с созданием записи о судимости (4 звезды)
 УК РО|Статья 16.2 (Ф/С) Посягательство на жизнь судьи, прокурора, следователя|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 16.3 (Ф/Р/С) Неуважение к суду и участникам судебного заседания|до 40 месяцев с созданием записи о судимости (4 звезды)|0
-УК РО|Статья 16.4 (Ф/С) Привлечение заведомо невиновного к уголовной ответственности|до 40 месяцев с созданием записи о судимости (4 звезды)|0
-УК РО|Статья 16.4.1 (Ф/С) Привлечение заведомо невиновного к административной ответственности|до 30 месяцев лишения свободы (3 звезды)|0
+УК РО|Статья 16.4 (Ф/С) Привлечение заведомо невиновного к ответственности|до 40 месяцев лишения свободы|0|ст. 16.4 Привлечение к уголовной ответственности^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 16.4.1 Привлечение к административной ответственности^до 30 месяцев лишения свободы (3 звезды)
 УК РО|Статья 16.5 (Ф/С) Заведомо незаконное задержание или арест|до 30 месяцев лишения свободы (3 звезды)|0
 УК РО|Статья 16.6 (Ф/С) Фальсификация доказательств по гражданскому или адм. делу|до 20 месяцев лишения свободы (2 звезды)|0
 УК РО|Статья 16.7 (Ф/С) Фальсификация доказательств по уголовному делу следователем/прокурором|до 50 месяцев с созданием записи о судимости (5 звезд)|0
@@ -1709,17 +1755,14 @@ InitDatabase() {
     (
 УК РО|Статья 17.2 (Ф/Р) Нанесение телесных повреждений или угроза представителю власти|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 17.3 (Ф/Р) Оскорбление представителя власти при исполнении обязанностей|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 17.4 (Р) Перевозка товаров без коммерческих документов или с поддельными|до 20 месяцев лишения свободы (2 звезды)|0
-УК РО|Статья 17.4.1 (Р) Подделка документов, лицензий, печатей и бланков|до 40 месяцев с созданием записи о судимости (4 звезды)|0
+УК РО|Статья 17.4 (Р) Перевозка товаров без документов и подделка документов|до 40 месяцев лишения свободы|0|ст. 17.4 Перевозка товаров без коммерческих документов^до 20 месяцев лишения свободы (2 звезды)~ст. 17.4.1 Подделка документов, лицензий, печатей и бланков^до 40 месяцев с созданием записи о судимости (4 звезды)
 УК РО|Статья 17.5 (Ф/С) Самоуправство (самовольные действия вопреки закону)|до 50 месяцев с созданием записи о судимости (5 звезд)|0
 УК РО|Статья 17.6 (Ф/Р/С) Неподчинение законным требованиям сотрудника силовых структур|до 30 месяцев лишения свободы (3 звезды)|1
 УК РО|Статья 17.7 (Ф/С) Укрывательство преступника или следов преступления|до 40 месяцев с созданием записи о судимости (4 звезды)|0
 УК РО|Статья 17.8 (Р) Грубое оскорбление человека в присутствии представителя власти|до 10 месяцев лишения свободы (1 звезда)|1
-УК РО|Статья 17.9 (Ф/Р/С) Незаконная помеха задержанию или процессуальным действиям|до 40 месяцев с созданием записи о судимости (4 звезды)|1
-УК РО|Статья 17.10 (Ф/Р/С) Помеха задержанию со стороны сотрудника госструктур|до 50 месяцев с созданием записи о судимости (5 звезд)|1
+УК РО|Статья 17.9 (Ф/Р/С) Незаконная помеха задержанию или процессуальным действиям|до 50 месяцев лишения свободы|1|ст. 17.9 Помеха задержанию гражданином^до 40 месяцев с созданием записи о судимости (4 звезды)~ст. 17.10 Помеха задержанию сотрудником госструктур^до 50 месяцев с созданием записи о судимости (5 звезд)
 УК РО|Статья 17.11 (Ф/Р/С/В) Провокация сотрудников Армии / помеха на КПП|до 30 месяцев лишения свободы (3 звезды)|0
-УК РО|Статья 17.12 (Ф/Р/В) Помеха движению организованной государственной колонны|до 30 месяцев лишения свободы (3 звезды)|1
-УК РО|Статья 17.12.1 (Ф/Р/В) Помеха госструктурам во время перевозки материалов|50 месяцев с созданием записи о судимости (5 звезд)|0
+УК РО|Статья 17.12 (Ф/Р/В) Помеха государственной колонне и перевозке материалов|до 50 месяцев лишения свободы|1|ст. 17.12 Помеха колонне государственных структур^до 30 месяцев лишения свободы (3 звезды)~ст. 17.12.1 Помеха госструктурам при перевозке материалов^50 месяцев с созданием записи о судимости (5 звезд)
 УК РО|Статья 17.13 (Ф/Р) Побег или сопротивление при аресте / задержании|до 40 месяцев с созданием записи о судимости (4 звезды)|1
 УК РО|Статья 17.14 (Р) Браконьерство / отлов редких видов животных и растений|до 30 месяцев лишения свободы (3 звезды)|0
     )
@@ -1727,354 +1770,79 @@ InitDatabase() {
 
     p1 =
     (
-ПК РО|Глава I. Статья 1. Следственные действия и поводы к проверке|Очевидец, сообщение потерпевшего/граждан, следы, принятое заявление|0
-ПК РО|Глава I. Статья 2. Принципы расследования (Адекватность и Безотлагательность)|Профессионализм, отсутствие промедлений, точные умозаключения|0
+ПК РО|Глава I. Статья 1. Следственные действия и поводы к проверке|Обязанность инициировать процессуальную проверку при наличии законных поводов|0|п. а) Непосредственный очевидец^Сотрудник стал непосредственным очевидцем правонарушения~п. б) Сообщение потерпевшего или очевидца^Потерпевший или очевидец сообщил о правонарушении~п. в) Обнаружение следов^Обнаружены явные следы правонарушения~п. г) Заявление гражданина^По факту принятого и зарегистрированного заявления
+ПК РО|Глава I. Статья 2. Принципы расследования|Обязанность соблюдать законные принципы при расследовании|0|Адекватность^Действовать профессионально, без превышения полномочий, разобраться до умозаключений~Безотлагательность^Отреагировать на правонарушение и начать действовать без промедлений
 ПК РО|Глава I. Статья 3. Передача дела уполномоченному сотруднику|Передача подозреваемого и изложение всех известных обстоятельств|0
-ПК РО|Глава I. Статья 4. Письменная отчетность и упрощенный порядок|При упрощенном разрешении дело не оформляется (видеофиксация 48 ч)|0
-ПК РО|Глава I. Статья 5. Перечень следственных действий (п. а - о)|Возбуждение дела, допрос, осмотр, экспертиза, эксперимент, обыск, выемка, рейд|0
-ПК РО|Глава I. Статья 6.1. Оперативно-розыскные мероприятия (ОРМ)|Опрос, наведение справок, закупка, наблюдение, внедрение, ориентировка|0
-ПК РО|Глава I. Статья 6.2. Порядок применения перечня ОРМ|Применяется с учетом федерального законодательства РО|0
-ПК РО|Глава I. Статья 6.3. Применение средств ограничения подвижности (наручников)|Для задержания, привода; распространяется процессуальный час|0
-ПК РО|Глава I. Статья 7. Понятие процессуального действия|Отдельная операция уполномоченного лица по проверке или задержанию|0
-ПК РО|Глава I. Статья 7.1. Виды процессуальных действий|Досмотр, обыск, задержание, арест, штрафы, лицензии, сила, спецсредства|0
-ПК РО|Глава I. Статья 7.1.1. Разграничение досмотра и обыска|Досмотр — с согласия; Обыск — без согласия при законных основаниях|0
+ПК РО|Глава I. Статья 4. Письменная отчетность и упрощенный порядок|Форма фиксации материалов дела и видеозаписи|0|ч. 1 Письменная отчетность^Дело ведется с отчетностью при передаче в суд, СК или прокуратуру~ч. 2 Упрощенный порядок на месте^Без отдельного дела; обязательная видеофиксация не менее 48 часов
+ПК РО|Глава I. Статья 5. Перечень следственных действий (п. а - о)|Исчерпывающий перечень следственных действий государственного сотрудника|0|п. а) Возбуждение дела / принятие проверки^Постановление следователя при наличии признаков преступления~п. б) Допрос^Свидетелей, потерпевших, подозреваемого, экспертов~п. в) Осмотр^Оценка и фиксация состояния и свойств материальных объектов~п. г) Освидетельствование^Экспертиза технического или биологического объекта~п. д) Следственный эксперимент^Воспроизведение опытным путем действий и обстановки~п. е) Обыск^Обследование помещений либо лиц в целях обнаружения предметов~п. ж) Выемка^Принудительное изъятие имеющих значение предметов и документов~п. з) ОРМ^Оперативно-розыскные мероприятия уполномоченных органов~п. и) Задержание^Кратковременное ограничение свободы на момент расследования~п. о) Рейд^Оцепление объекта на основании судебного акта или прокурора
+ПК РО|Глава I. Статья 6.1. Оперативно-розыскные мероприятия (ОРМ)|Перечень оперативно-розыскных мероприятий|0|п. а - в) Опрос, наведение справок, сборы образцов^Первоначальный сбор ориентирующей информации~п. г) Контрольная закупка^Проводится оперативными подразделениями по закону~п. е - ж) Наблюдение и обследование помещений/ТС^Сбор данных в пределах установленной компетенции~п. и - к) Оперативное внедрение и эксперимент^Проводятся уполномоченными оперативниками~п. м) Объявление ориентировки^Применяется по решению суда или уголовному делу
+ПК РО|Глава I. Статья 6.3. Применение средств ограничения подвижности (наручников)|Применение наручников для задержания, привода; процессуальный час|0
+ПК РО|Глава I. Статья 7.1. Виды процессуальных действий|Действия, непосредственно затрагивающие права граждан|0|п. а) Досмотр личный и ТС^Проводится исключительно с устного или письменного согласия лица~п. б) Обыск личный и ТС^Обследование без согласия при наличии законных оснований~п. в - г) Задержание и арест^Меры ограничения свободы по закону~п. д - е) Штрафы и изъятие лицензий^Применение административных и специальных санкций~п. ё) Сила, спецсредства и наручники^Меры физического принуждения~п. ж) Устные требования в рупор/связь^Предъявление обязательных распоряжений
 ПК РО|Глава I. Статья 8. Рейд (основание, оцепление объекта)|Проводится на основании судебного акта или постановления прокурора|0
-ПК РО|Глава I. Статья 9. Пределы следственных действий государственного сотрудника|Строго в рамках и пределах предоставленных должностных полномочий|0
-ПК РО|Глава I. Статья 10. Подследственность СК, ФСБ, Прокуратуры|Материалы передаются по подследственности без необоснованной задержки|0
-ПК РО|Глава I. Статья 11. Самостоятельность Следственного комитета и надзор прокуратуры|Прокурор проверяет законность, но не руководит следствием СК|0
-ПК РО|Глава I. Статья 12. Возбуждение уголовного дела и принятие к производству|Возбуждается следователем при достаточных данных о преступлении|0
-ПК РО|Глава I. Статья 13. Срок предварительного расследования|Обычный срок до 96 часов; продление до 7 дней; далее через суд|0
-ПК РО|Глава I. Статья 14. Окончание предварительного расследования|Обвинительное заключение, передача в суд, прокуратуру либо прекращение|0
-ПК РО|Глава II. Статья 1. Задержание подозреваемого (основания п. а - ж)|Ограничение свободы до 1 часа для сбора доказательств во внесудебном порядке|0
-ПК РО|Глава II. Статья 1.1. Процедура установки личности (отказ от документов / маска)|Наручники -> основание -> базы данных -> фоторобот -> первичный обыск|0
-ПК РО|Глава II. Статья 2. Порядок задержания лица (12 обязательных пунктов)|Наручники -> опознавательный знак -> обыск -> выемка -> статьи -> Миранда -> ИВС|0
-ПК РО|Глава II. Статья 2.1. Отступление от точного порядка задержания|Допускается при ЧП, но все ключевые пункты обязаны быть выполнены|0
-ПК РО|Глава II. Статья 2.2. Удаление инородных предметов с лица задержанного|Разрешается снять маску или предмет, скрывающий внешность|0
-ПК РО|Глава II. Статья 2.3. Запрос содействия по связи для вызова адвоката/прокурора|Обязанность запросить помощь коллег при отсутствии прямого доступа к каналу|0
-ПК РО|Глава II. Статья 2.4. Первичный обыск при задержании|Поиск и временное изъятие оружия, наркотиков, взрывчатки и ножей|0
+ПК РО|Глава I. Статья 10. Подследственность СК, ФСБ, Прокуратуры|Материалы передаются по подследственности без необоснованной задержки|0|ч. 1 Исключительная подследственность СК и ФСБ^Предварительное расследование по федеральным законам~ч. 2 Полномочия прокуратуры^Вправе самостоятельно рассматривать любые уголовные материалы~ч. 3 Передача материалов^Передаются по подследственности без задержек~ч. 4 Неотложные действия^Пресечение преступления, защита жизни, первичный обыск и задержание
+ПК РО|Глава I. Статья 13. Срок предварительного расследования|Обычный срок до 96 часов; продление до 7 дней; далее через суд|0|ч. 1 Обычный срок расследования^До 96 часов с момента возбуждения уголовного дела~ч. 2 Продление руководством следствия^Мотивированное продление до семи календарных дней~ч. 3 Продление через суд^В исключительных случаях по судебному ходатайству
+ПК РО|Глава II. Статья 1. Задержание подозреваемого (основания п. а - ж)|Ограничение свободы до 1 часа для сбора доказательств во внесудебном порядке|1|п. а) Застигнут на месте^В момент совершения или непосредственно после совершения деяния~п. б) Явные следы^Следы на одежде, теле, при себе или в жилище лица~п. в) Показания свидетелей^Три и более свидетелей прямо указывают на лицо~п. г) Фото-видеофиксация^Наличие объективных фото- или видеоматериалов правонарушения~п. д) Акт уполномоченного лица^Судебный акт или прокурорская санкция на задержание~п. е) Розыск или ориентировка^Ориентировка на ТС или лицо, нахождение в базе розыска~п. ж) Угроза жизни или неадекватность^Непосредственная угроза окружающим или сильное опьянение с нарушением
+ПК РО|Глава II. Статья 1.1. Процедура установки личности (отказ от документов / маска)|Порядок действий при сокрытии личности или отсутствии документов|1|п. а) Наручники^Надеть наручники на лицо (если применяются)~п. б) Разъяснение основания^Разъяснить лицу законное основание установления личности~п. в) Проверка баз и документов^Использование баз данных и досмотр документов задержанного~п. г) Фоторобот^Сверить лицо задержанного с ориентировкой и фотороботом~п. д) Личный обыск^При обнаружении нелегала — переход к процессу задержания
+ПК РО|Глава II. Статья 2. Порядок задержания лица (обязательные пункты)|Строгая последовательность процессуальных действий сотрудника|1|1. Наручники^Надеть наручники на подозреваемого (если применяются)~2. Опознавательный знак^Предъявить нашивку, бейдж, жетон или служебное удостоверение~3. Первичный обыск и личность^Поиск документов, проверка розыска и принадлежности к госорганам~4. Временная выемка опасного^Изъятие оружия, боеприпасов, ножей, наркотиков, взрывчатки на время процесса~5. Учет розыска^Внесение данных о розыске по законным основаниям~6. Разъяснение статей^Огласить основания задержания и статьи с кратким разъяснением~7. Разъяснение прав (Миранда)^Зачитать процессуальные права в порядке ст. 6 гл. II ПК РО~8. Доставление в ИВС/Суд^Доставка задержанного для процессуальных действий или ареста~9. Экспертиза (при необходимости)^Экспертиза технического или биологического объекта~10. Допрос (при необходимости)^Допрос подозреваемого с обязательным участием адвоката при запросе~11. Вызов прокурора для гос. служащих^Вызов прокурора и СК при задержании государственного служащего
+ПК РО|Глава II. Статья 2.7.1. Передача задержанного по подследственности СК или ФСБ|Порядок передачи при совершении преступлений юрисдикции СК/ФСБ|0|ч. 1 Запрет разрешать дело сотрудником полиции^Обязанность организовать передачу уполномоченному следствию~ч. 2 Место ожидания^Доставление в ИВС или служебное помещение для передачи~ч. 3 Вызов сотрудника^Направление межведомственного вызова уполномоченному лицу~ч. 4 Неотложные действия^Установление личности, первичный обыск, видеофиксация и выемка опасного~ч. 5 Передача материалов^Передача видеозаписи, улик, изъятых предметов и задержанного~ч. 6 Срок задержания^Срок исчисляется с момента первого ограничения свободы и не прерывается~ч. 7 Освобождение при неприбытии^Освобождение лица, если сотрудник СК/ФСБ не прибыл до истечения срока
+ПК РО|Глава II. Статья 2.9. Упрощенное разрешение уголовного материала на месте|Лишение свободы до 5 лет по общей подследственности без уголовного дела|1|ч. 1 Условия применения^Общая подследственность, не гос. служащий, без обязательного суда~ч. 2 Делопроизводство не ведется^Основа — достаточные доказательства и видеофиксация 48 часов~ч. 3 Проверка доказательств и адвокат^Проверка оправдывающих данных и обеспечение права на защиту~ч. 4 Мера наказания^Лишение свободы до 5 лет (за искл. оскорбления по ст. 17.3 УК при процессе)~ч. 5 Запрет штрафов полицией^Уголовный штраф и лишение должностей полицией в упрощенном порядке не назначаются~ч. 6 Оглашение решения^Объявление статей, назначенного срока и права на обжалование под видео~ч. 9 Ограничение ФСБ^Сотрудник ФСБ не вправе назначать или оформлять уголовный штраф
+ПК РО|Глава II. Статья 3. Вызов адвоката на задержание|Сроки и порядок реализации права на квалифицированную юридическую помощь|1|ст. 3.1 Запрос гос. адвоката^Ожидание ответа по рации 3 минуты; при молчании — продолжение процесса~ст. 3.2 Ожидание приезда адвоката^При подтверждении вызова процессуальный час приостанавливается до 10 минут~ст. 3.3 Частный адвокат^Приостановка процессуального часа на приезд не более 10 минут~ст. 3.4 Осознанный отказ^Право на защиту считается реализованным при осознанном отказе лица
+ПК РО|Глава II. Статья 4. Задержание государственного служащего|Обязательное участие прокуратуры и Следственного комитета|1|ст. 4.1 Проверка улик прокурором^Прокурор лично изучает видеозаписи, состав и принимает решение~ст. 4.2 Ожидание прибытия прокурора^Приостановка проц. часа до прибытия прокурора не более 15 минут (далее — свободен)~ст. 4.3 Неподтверждение вызова за 15 минут^Задержанный служащий освобождается от удержания; материалы передаются в прокуратуру~ст. 4.4 Решения прокурора^Освобождение, штраф, арест, изменение статей либо передача в СК/ФСБ~ст. 4.8 Увольнение после задержания^Не отменяет обязательную специальную процедуру прокурора~ст. 4.9 Решающее слово прокурора^Окончательное решение выносит сотрудник прокуратуры
+ПК РО|Глава II. Статья 7. Основания освобождения подозреваемого|Перечень оснований для немедленного прекращения ограничения свободы|1|п. а) Не подтвердилось^Не подтвердилось подозрение в совершении правонарушения~п. б) Санкция исполнена^Штраф оплачен, оснований для дальнейшего удержания нет~п. в) Нарушение ст. 1 гл. II^Задержание проведено без законных оснований~п. г) Истек 1 час^Истек процессуальный час без вынесения процессуального решения~п. д) Неприкосновенность^Лицо обладает неприкосновенностью (кроме прямой угрозы жизни)~п. е) Недопустимые улики^Отсутствие допустимых доказательств либо признание их незаконными
+ПК РО|Глава II. Статья 7.1. Основания приостановления процессуального часа|Исчерпывающий перечень законных оснований паузы процессуального срока|1|п. а) Допрос^Проведение официального допроса подозреваемого~п. б) Адвокат^Ожидание ответа/приезда и конфиденциальная беседа до 10 минут~п. в) Прокурор^Ожидание приезда и разбирательство по гос. служащему до 15 минут~п. г) Дополнительная проверка^Проведение проверки обстоятельств, но не более чем на 20 минут~п. д) Ожидание СК / ФСБ^Доставление и ожидание следователя СК/ФСБ совокупно не более 20 минут~п. е) Судебная проверка^Незамедлительная проверка судьей — на все фактическое время
+ПК РО|Глава II. Статья 8. Субъекты задержания (круг лиц с правом присутствия)|Лица, законно допущенные к процессуальным действиям задержания|0|п. а) Сотрудник правопорядка^Сотрудник(-и) при исполнении, производящий задержание или арест~п. б) Задержанный^Лицо, в отношении которого проводятся процессуальные действия~п. в) Адвокат^Защитник (и до 3 младших адвокатов при основном адвокате)~п. г) Прокурор^Сотрудник прокуратуры для надзора или решения по гос. служащему~п. д - е) Наблюдатели ФСБ и СК^По одному сотруднику управления ФСБ и Следственного комитета~п. ё) Руководство Правительства^Премьер-министр, Вице-премьер-министр и их охрана
+ПК РО|Глава II. Статья 9. Права задерживаемого лица|Гарантированные законом права подозреваемого гражданина|1|п. а) Телефонный звонок^Один разговор до 3 минут в присутствии сотрудника~п. б) Адвокат и беседа наедине^Конфиденциальная встреча с защитником до 10 минут наедине~п. в) Молчание^Право не свидетельствовать против себя и близких родственников~п. г) Знание оснований^Право знать основания задержания и инкриминируемые статьи~п. д) Обжалование^Право заявлять ходатайства и обжаловать действия сотрудников
+ПК РО|Глава II. Статья 10. Обязанности сотрудника при задержании|Обязательные требования к сотруднику, ограничивающему свободу|1|п. а) Видеофиксация 48 часов^Вести и хранить непрерывную видеозапись оснований и процесса не менее 48 часов~п. б) Предоставление адвокату^Предоставить адвокату видеозапись каждого отдельного эпизода~п. в) Предоставить прокурору^Обязанность показать видеозапись прокурору по его требованию~п. д) Вызов прокурора и СК^Обязательный вызов при задержании государственного служащего
     )
     LoadData(p1)
 
     p2 =
     (
-ПК РО|Глава II. Статья 2.5. Освобождение при неподтверждении оснований|Ограничение свободы немедленно прекращается|0
-ПК РО|Глава II. Статья 2.5.1. Возврат временно изъятых для безопасности предметов|Возвращаются законному владельцу после отпадения оснований удержания|0
-ПК РО|Глава II. Статья 2.6. Выемка предметов и документов|Принудительное изъятие вещей, имеющих значение для дела или безопасности|0
-ПК РО|Глава II. Статья 2.7. Порядок передачи задержанного между сотрудниками|Передаются основания, предварительная квалификация, улики и видеозапись|0
-ПК РО|Глава II. Статья 2.7.1. Передача задержанного по подследственности СК или ФСБ|Сотрудник МВД не разрешает дело, а вызывает уполномоченного сотрудника|0
-ПК РО|Глава II. Статья 2.8. Проверка неприкосновенности и специального статуса|Удостоверение осматривается до совершения следственных действий|0
-ПК РО|Глава II. Статья 2.9. Упрощенное разрешение уголовного материала непосредственно при задержании|До 5 лет лишения свободы по общей подследственности (без дела и штрафа)|0
-ПК РО|Глава II. Статья 3.1. Вызов государственного адвоката на задержание|Ожидание ответа по рации 3 минуты; при отсутствии — продолжение|0
-ПК РО|Глава II. Статья 3.2. Ожидание прибытия государственного адвоката|При подтверждении процессуальный час приостанавливается до 10 минут|0
-ПК РО|Глава II. Статья 3.3. Вызов частного адвоката|Приостановка процессуального часа на срок ожидания не более 10 минут|0
-ПК РО|Глава II. Статья 3.4. Отказ задержанного от услуг адвоката|Право на защиту считается реализованным при осознанном отказе лица|0
-ПК РО|Глава II. Статья 4.1. Участие прокурора и СК при задержании государственного служащего|Изучение улик, видеозаписей; прокурор принимает обязательное решение|0
-ПК РО|Глава II. Статья 4.2. Срок ожидания прокурора при задержании гос. служащего|Ожидание не более 15 минут; при неприбытии лицо освобождается|0
-ПК РО|Глава II. Статья 4.3. Неподтверждение вызова прокуратурой за 15 минут|Задержанный гос. служащий подлежит немедленному освобождению|0
-ПК РО|Глава II. Статья 4.4. Полномочия прокурора по итогам задержания служащего|Освобождение, изменение статей, назначение штрафа, ареста, передача в СК|0
-ПК РО|Глава II. Статья 4.5. Освобождение служащего при отсутствии оснований|Прокуратура вправе проверить законность действий задерживавших сотрудников|0
-ПК РО|Глава II. Статья 4.6. Обжалование решения прокурора на задержании|Подается вышестоящему прокурору или в суд; исполнение не приостанавливается|0
-ПК РО|Глава II. Статья 4.7. Исполнение ранее вынесенного прокурорского акта|Повторный вызов прокурора на место не требуется при действующем решении|0
-ПК РО|Глава II. Статья 4.8. Увольнение служащего после начала задержания|Не отменяет обязательную специальную прокурорскую процедуру|0
-ПК РО|Глава II. Статья 4.9. Совместное участие прокурора и следователя СК|Окончательное решение по делу выносит сотрудник прокуратуры|0
-ПК РО|Глава II. Статья 5. Уведомление госоргана о задержании его служащего|Информационный характер, не приостанавливает сроки задержания|0
-ПК РО|Глава II. Статья 6. Разъяснение процессуальных прав (Правило Миранды)|Право на молчание, звонок (3 мин), адвоката (10 мин конфиденциально)|0
-ПК РО|Глава II. Статья 7. Основания освобождения подозреваемого|Не подтвердилось, штраф уплачен, истек 1 час, неприкосновенность|0
-ПК РО|Глава II. Статья 7.1. Основания приостановления процессуального часа|Допрос, адвокат, прокурор, доп. проверка (до 20 мин), суд. проверка|0
-ПК РО|Глава II. Статья 8. Субъекты задержания (круг лиц с правом присутствия)|Сотрудники, задержанный, адвокат, прокурор, СК, ФСБ, Губернатор|0
+ПК РО|Глава V. Статья 3. Обыск транспортного средства без судебного ордера|Законные основания для досмотра и обыска автомобиля|1|1) Погоня и таран^Попытка водителя скрыться от требования об остановке с принудительной остановкой~2) Ориентировка^Действующая ориентировка на ТС либо нахождение в нем разыскиваемого лица~3) Запрещенные предметы^Обнаружение у водителя или пассажиров оружия, боеприпасов или наркотиков~4) Режимный объект^Нахождение ТС на охраняемой или режимной территории без разрешения~5) Следы преступления^Наличие видимых следов преступления или прямых оснований для обыска
+ПК РО|Глава VII. Статья 1. Обязательная видеофиксация процессуальных действий|Перечень процессуальных действий с непрерывной видеозаписью|1|1) Задержание^Основания задержания и весь ход процесса задержания~2) Арест^Помещение лица под административный или уголовный арест в ИВС~3) Обыски^Личный обыск и обыск ТС без согласия лица~4) Сила и оружие^Применение физической силы, специальных средств или огнестрельного оружия~5) Изъятия^Принудительное изъятие лицензий, разрешений или имущества
+ПК РО|Глава VII. Статья 3. Срок хранения видеофиксации (не менее 48 часов)|Сроки и условия сохранения видеозаписей сотрудником|1|ч. 1 Минимальный срок 48 часов^Запись хранится не менее 48 часов с момента окончания действия~ч. 2 Продление при жалобе или суде^Запись сохраняется до окончания суда, следствия или проверки жалобы
+ПК РО|Глава XI. Статья 2. Общие положения об устном законном требовании|Обязательные критерии законного распоряжения сотрудника|1|ч. 1 Обязательность исполнения^Требование обязательно для исполнения гражданами и должностными лицами~ч. 2 Форма требования^Однозначное, конкретное, законное, этичное, в повелительном наклонении~ч. 3 Законные цели^Процессуальные действия, проверка документов, пресечение правонарушений, порядок
+ПК РО|Глава XI. Статья 4. Основания применения силы и спецсредств|Правила применения приемов борьбы, дубинок, тазеров и наручников|1|ч. 1 Оправданность и соразмерность^Применение только при необходимости с минимизацией вреда~ч. 4 Несмертельная сила^Приемы, дубинки, тазеры при умеренной угрозе или физическом сопротивлении~Прим. 1 Запрет силы при обычном штрафе^Запрет силы при выписывании штрафа КоАП без сопротивления лица~Прим. 2 Наручники при УК и адм. аресте^Право надеть наручники при признаках преступления или административного ареста
+ПК РО|Глава XI. Статья 5. Особенности применения смертельной силы|Крайние основания для открытия огня на поражение|1|ч. 1 Защита жизни^Исключительно при непосредственной угрозе смерти или тяжкого вреда здоровью~ч. 3 Случаи применения^Отражение нападения, освобождение заложников, побег опасного преступника~ч. 4 Запрет предупредительных выстрелов^Предупредительные выстрелы категорически запрещены!~ч. 5 Побег^Бегство само по себе не оправдывает стрельбу без смертельной угрозы
+ПК РО|Глава XI. Статья 6. Остановка ТС и применение силы в мегафон|Основания остановки и принудительного блокирования автомобиля|1|ч. 4 Требования в рупор^Требование об остановке оглашается через мегафон~ч. 5 Таран после 1-го требования^При неповиновении первому требованию при сирене и маячках патруля~ч. 6 Остановка после 3-х требований^При неповиновении 3 требованиям мегафона с объявлением ведомства~ч. 7 Немедленный таран/огонь^Тяжкое преступление, скрылся от погони, смертельная езда, проезд за оцепление~ч. 9 Способы остановки^Огнестрельное оружие по колесам, тазер, таран и блокирование ТС~ч. 10 Силовое извлечение^Извлечение силой при отказе добровольно покинуть автомобиль
     )
     LoadData(p2)
 
-    p3 =
-    (
-ПК РО|Глава II. Статья 8.1. Запрет вмешательства посторонних лиц в процессуальные действия|Требование отойти на безопасное расстояние обязательно к исполнению|0
-ПК РО|Глава II. Статья 9. Права задерживаемого лица (звонок 3 мин, адвокат 10 мин)|Право хранить молчание, право знать статьи и обжаловать действия|0
-ПК РО|Глава II. Статья 10. Обязанности сотрудника (хранение видеозаписи 48 часов)|Обязанность вести видеофиксацию и предоставить ее адвокату/прокурору|0
-ПК РО|Глава II. Статья 11. Задержание во исполнение судебного или прокурорского акта|Повторное рассмотрение не требуется; права задержанного сохраняются|0
-ПК РО|Глава III. Статья 1. Порядок исполнения административного ареста|Личный обыск, выемка запрещенных вещей, водворение в ИВС|0
-ПК РО|Глава III. Статья 2. Административный арест государственного служащего|Разрешается исключительно прокурором в порядке главы II ПК|0
-ПК РО|Глава III. Статья 2.1. Обжалование административного ареста|Вышестоящему прокурору либо в судебном порядке|0
-ПК РО|Глава III. Статья 2.2. Исполнение ранее вынесенного акта об адм. аресте|Повторное рассмотрение прокурором на месте не требуется|0
-ПК РО|Глава III. Статья 3. Передача задержанного для административного ареста|Передается уполномоченному лицу вместе со всеми материалами|0
-ПК РО|Глава IV. Статья 1. Основания уголовного ареста|Решение прокурора, санкция на арест, решение суда, упрощенный порядок|0
-ПК РО|Глава IV. Статья 2. Порядок исполнения уголовного ареста|Полный обыск, выемка, помещение в камеру ИВС / места содержания|0
-ПК РО|Глава IV. Статья 3. Арест государственного служащего|Обязательное прокурорское рассмотрение до помещения под арест|0
-ПК РО|Глава IV. Статья 3.1. Исполнение судебного акта или прокурорской санкции|Прямое исполнение без повторного рассмотрения оснований|0
-ПК РО|Глава IV. Статья 3.2. Прокурорская санкция на арест (Генпрокурор, старший прокурор)|Основание для объявления в розыск, задержания и помещения под арест|0
-ПК РО|Глава IV. Статья 3.3. Обжалование прокурорской санкции на арест|Обжалуется вышестоящему прокурору либо в суд|0
-ПК РО|Глава IV. Статья 3.4. Лица со специальным процессуальным статусом (неприкосновенность)|Арест и следственные действия только по специальной процедуре|0
-ПК РО|Глава IV. Статья 4. Передача лица для исполнения уголовного ареста|Передается с материалами и основаниями задержания|0
-ПК РО|Глава V. Статья 1. Основания и законные цели личного обыска|Установление личности, поиск оружия, опасных и запрещенных предметов|0
-ПК РО|Глава V. Статья 1.1. Первичный обыск при задержании|Обеспечение безопасности; временное изъятие не является конфискацией|0
-ПК РО|Глава V. Статья 1.2. Обыск перед помещением под арест|Полный личный обыск с изъятием всех запрещенных в изоляторе вещей|0
-ПК РО|Глава V. Статья 2. Обыск жилища и частной территории|По судебному решению; в неотложных случаях — с уведомлением за 1 час|0
-ПК РО|Глава V. Статья 3. Обыск транспортного средства без ордера суда|Погоня, ориентировка, запрещенные предметы у водителя, охраняемый объект|0
-ПК РО|Глава V. Статья 4. Досмотр при проходе на охраняемый государственный объект|Пропускной режим; добровольность (отказ = покинуть территорию)|0
-ПК РО|Глава V. Статья 5. Режим военных и охраняемых территорий|Специальный режим; право требовать досмотр или выдворение посторонних|0
-ПК РО|Глава V. Статья 6. Вызов и доставление лица на допрос|Повестка, постановление; задержанный доставляется без повестки|0
-    )
-    LoadData(p3)
-
-    p4 =
-    (
-ПК РО|Глава V. Статья 7. Порядок проведения допроса|Разъяснение прав, участие адвоката, категорический запрет насилия и угроз|0
-ПК РО|Глава V. Статья 8. Фиксация и хранение записи допроса (48 часов)|Непрерывная аудио-видеозапись; хранение не менее 48 часов|0
-ПК РО|Глава V. Статья 9. Допустимость показаний допрашиваемого|Только добровольные показания с разъяснением прав имеют силу|0
-ПК РО|Глава V. Статья 10. Заявление о незаконном давлении при допросе|Проверка записи прокурором/судом; признание улик недопустимыми|0
-ПК РО|Глава V. Статья 11. Обязанность явки по законному вызову|Неявка без уважительной причины влечет принудительный привод|0
-ПК РО|Глава V. Статья 12. Порядок осуществления привода|Принудительное доставление к следователю, прокурору или в суд|0
-ПК РО|Глава VI. Статья 1. Презумпция невиновности|Бремя доказывания на следствии; неустранимые сомнения в пользу обвиняемого|0
-ПК РО|Глава VI. Статья 2. Законность и допустимость доказательств|Улики, добытые с насилием или без ордера, признаются недопустимыми|0
-ПК РО|Глава VI. Статья 3. Оценка доказательств по совокупности|Никакое доказательство не имеет заранее установленной силы|0
-ПК РО|Глава VI. Статья 4. Приоритет специальной нормы над общей|Специальная процедура имеет верховенство над общим порядком|0
-ПК РО|Глава VII. Статья 1. Обязательная видеофиксация процессуальных действий|Задержание, арест, обыски, допросы, применение силы, изъятие лицензий|0
-ПК РО|Глава VII. Статья 2. Требования к видеозаписи|Непрерывность, различимость лиц и обстоятельств; запрет монтажа|0
-ПК РО|Глава VII. Статья 3. Срок хранения видеофиксации (не менее 48 часов)|При наличии жалобы или суда — хранится до окончания дела|0
-ПК РО|Глава VII. Статья 4. Истребование и предоставление записи|Обязанность передать запись по запросу суда, прокурора или адвоката|0
-ПК РО|Глава VII. Статья 5. Последствия отсутствия обязательной записи|Бремя объяснения на сотруднике; возможная отмена всех решений|0
-ПК РО|Глава VIII. Статья 1. Обязанность разъяснения прав участникам производства|Суд, прокурор, следователь обязаны разъяснить все процессуальные права|0
-ПК РО|Глава VIII. Статья 2. Защита участников производства (свидетелей, потерпевших)|Меры гос. защиты при угрозе жизни или здоровью|0
-ПК РО|Глава VIII. Статья 3. Немедленное прекращение незаконного ограничения свободы|Немедленное освобождение при отпадении законных оснований|0
-ПК РО|Глава VIII. Статья 4. Безопасность задержанного и оказание медпомощи|Обеспечение безопасных условий; неотложная помощь врачей при травмах|0
-ПК РО|Глава VIII. Статья 5. Тайна переписки и телефонных переговоров|Ограничение допускается исключительно по решению суда|0
-ПК РО|Глава VIII. Статья 6. Запрет необоснованного затягивания процессуальных действий|Запрет избыточных маршрутов доставки и искусственных задержек|0
-ПК РО|Глава IX. Статья 1. Срок и формы обжалования (48 часов)|Жалоба подается в течение 48 часов в прокуратуру или суд|0
-ПК РО|Глава IX. Статья 2. Порядок обжалования действий в прокуратуру|Прокурорская проверка, отмена мер, направление дела по подследственности|0
-ПК РО|Глава IX. Статья 3. Судебный порядок обжалования|Суд вправе признать действие незаконным и отменить индивидуальный акт|0
-ПК РО|Глава IX. Статья 4. Обжалование решений прокурора|Вышестоящему прокурору либо в суд (решения Генпрокурора — только в суд)|0
-    )
-    LoadData(p4)
-
-    p5 =
-    (
-ПК РО|Глава IX. Статья 5. Обжалование следственных решений СК|Руководителю следственного органа либо в суд|0
-ПК РО|Глава IX. Статья 6. Последствия признания действия незаконным|Немедленное освобождение гражданина и возврат изъятого имущества|0
-ПК РО|Глава X. Статья 1. Понятие сделки со следствием (досудебное соглашение)|Добровольное содействие раскрытию преступлений в обмен на смягчение|0
-ПК РО|Глава X. Статья 2. Инициатива и порядок предложения соглашения|Предлагается следователем, прокурором или задерживающим сотрудником|0
-ПК РО|Глава X. Статья 3. Содержание соглашения о сотрудничестве|Конкретные действия, правдивые показания, пределы смягчения наказания|0
-ПК РО|Глава X. Статья 4. Заключение и утверждение соглашения прокурором|Обязательное утверждение прокурором после проверки добровольности|0
-ПК РО|Глава X. Статья 5. Порядок исполнения соглашения сотрудничающим лицом|Дача показаний, очные ставки, участие в оперативных действиях|0
-ПК РО|Глава X. Статья 6. Правовые последствия исполнения соглашения|Учет судом смягчающих обстоятельств строго в рамках УК РО|0
-ПК РО|Глава X. Статья 7. Ответственность за неисполнение соглашения или ложь|Аннулирование всех преимуществ сделки и рассмотрение дела на общих основаниях|0
-ПК РО|Глава X. Статья 8. Конфиденциальность и безопасность сотрудничающего лица|Государственная тайна и меры безопасности для участника сделки|0
-ПК РО|Глава XI. Статья 1. Законодательство об устных требованиях и силе|Обязательно для соблюдения всеми государственными служащими РО|0
-ПК РО|Глава XI. Статья 2. Требования к устному законному распоряжению|Повелительное наклонение, однозначность, конкретность, исполнимость|0
-ПК РО|Глава XI. Статья 3. Иерархия требований (взаимоисключающие распоряжения)|Исполнению подлежит требование, озвученное последним по времени|0
-ПК РО|Глава XI. Статья 4. Основания применения физической силы и спецсредств (тазер)|Соразмерность; преодоление сопротивления; запрет силы при обычном штрафе|0
-ПК РО|Глава XI. Статья 5. Основания применения смертельной силы (огнестрельного оружия)|Непосредственная угроза жизни; категорический запрет предупредительных выстрелов|0
-ПК РО|Глава XI. Статья 6. Остановка ТС через мегафон (3 требования) и принудительная остановка|Таран, тазер, стрельба по колесам при неподчинении требованиям мегафона|0
-ПК РО|Глава XII. Статья 1. Непрерывность процессуальных действий сотрудника|Запрет срыва процессуальных действий другими сотрудниками / запрет фиктивных мер|0
-ПК РО|Глава XIII. Статья 1. Соотношение Процессуального кодекса с иными законами|Верховенство процессуальных гарантий Конституции и федеральных кодексов|0
-ПК РО|Глава XIII. Статья 2. Исчисление и фиксация процессуальных сроков|Приостановление строго по закону; обязательная поминутная фиксация|0
-    )
-    LoadData(p5)
-
     pd1 =
     (
-ПДД РО|Пункт 1.1 - 1.2. Обязанности участников движения соблюдать ПДД|Правила поведения на дорогах; ответственность по КоАП РО|0
-ПДД РО|Пункт 1.3. Правостороннее движение|Дорожное движение на всей территории РО является правосторонним|0
-ПДД РО|Пункт 1.4. Термины: Дорога, проезжая часть, полоса, обочина|Определения элементов обустроенной дороги|0
-ПДД РО|Пункт 1.4. Термины: Разделительная полоса, перекресток, прилегающая территория|Определения зон пересечения и границ дорожной сети|0
-ПДД РО|Пункт 1.4. Термины: Пешеходный переход, обгон, опережение|Разграничение выезда на встречную полосу (обгон) и опережения попутных ТС|0
-ПДД РО|Пункт 1.4. Термины: Остановка (до 5 мин), стоянка (более 5 мин)|Разграничение преднамеренного прекращения движения ТС|0
-ПДД РО|Пункт 1.4. Термины: Уступить дорогу, ДТП, автомагистраль, колонна ТС|Определения приоритета и особых категорий движения|0
-ПДД РО|Пункт 1.5. Принцип взаимной безопасности на дороге|Запрет создания опасности и необоснованных помех другим лицам|0
-ПДД РО|Пункт 2.1. Обязанность водителя иметь и предъявлять права и документы на ТС|Предъявление по первому законному требованию сотрудника ГИБДД|0
-ПДД РО|Пункт 2.2. Управление ТС с государственными регистрационными знаками|Номера обязаны соответствовать учету и быть установленными|0
-ПДД РО|Пункт 2.3 - 2.4. Остановка по требованию ГИБДД и выход из автомобиля|Остановка в безопасном месте и выполнение законных требований|0
-ПДД РО|Пункт 2.5. Запреты на управление ТС (опьянение, без прав, неисправность)|Запрещено садиться за руль в опьянении, утомлении или без прав|0
-ПДД РО|Пункт 2.6. Запрет передачи управления лицу без прав или в опьянении|Владелец ТС несет прямую ответственность по КоАП|0
-ПДД РО|Пункт 2.7. Обязанность водителя пройти освидетельствование на опьянение|Проверка на состояние опьянения при наличии законных оснований|0
-ПДД РО|Пункт 2.8. Запрет использования телефона без гарнитуры во время движения|Запрещено удерживать телефон или радиостанцию рукой за рулем|0
-ПДД РО|Пункт 2.9 - 2.10. Безопасная дистанция, запрет опасного вождения|Ответственность по статье 49 КоАП РО|0
-ПДД РО|Пункт 2.11. Запрет самовольного вклинивания в организованную колонну ТС|Ответственность по статье 70 КоАП РО|0
-ПДД РО|Пункт 3.1 - 3.2. Первоочередные действия водителя при совершении ДТП|Остановиться, включить аварийку, выставить знак, не сдвигать предметы|0
-ПДД РО|Пункт 3.3. Действия при ДТП с пострадавшими|Первая помощь, вызов скорой помощи и инспекторов ГИБДД|0
-ПДД РО|Пункт 3.4 - 3.5. Оформление ДТП только с материальным ущербом|Фото-видеофиксация; при споре обязателен вызов ГИБДД|0
-ПДД РО|Пункт 3.6. Категорический запрет оставления места ДТП|Лишение права управления по ст. 48 КоАП РО|0
-ПДД РО|Пункт 3.8. Запрет употребления веществ/алкоголя после совершения ДТП|Запрещено употреблять алкоголь до проведения освидетельствования|0
-ПДД РО|Пункт 4.1 - 4.2. Право отступать от правил при синих/красных маячках и сирене|Преимущество предоставляется только при одновременной сирене и маячках|0
-ПДД РО|Пункт 4.3 - 4.4. Обязанность уступить дорогу спецтранспорту с сиреной|Снизить скорость при приближении к стоящему спецтранспорту с маячками|0
-ПДД РО|Пункт 4.5 - 4.6. Желтые и оранжевые проблесковые маячки|Преимущества не дают; используются для эвакуаторов, дорожных служб|0
+ПДД РО|Пункт 1. Общие положения и основные термины ПДД|Базовые правила дорожного движения на территории РО|0|п. 1.3 Правостороннее движение^Движение на всей территории РО является правосторонним~п. 1.4 Термины^Обочина, полоса, перекресток, обгон, опережение, остановка, стоянка~п. 1.5 Взаимная безопасность^Запрет создания опасности и необоснованных помех
+ПДД РО|Пункт 2. Общие обязанности водителя ТС|Перечень обязанностей лица, управляющего транспортом|0|п. 2.1 Права и СТС^Обязанность иметь и предъявлять В/У и документы на ТС по требованию ГИБДД~п. 2.2 Регистрационные знаки^Управление ТС только с установленными гос. номерами~п. 2.3 - 2.4 Остановка и выход^Остановка по требованию ГИБДД и выход из авто при законном требовании~п. 2.5 Запреты на руль^Запрет управления в опьянении, утомлении, без прав или при неисправности~п. 2.7 Освидетельствование^Обязанность пройти проверку на состояние опьянения~п. 2.8 Телефон без гарнитуры^Запрет удержания средств связи рукой во время движения
+ПДД РО|Пункт 3. Обязанности водителя при совершении ДТП|Порядок действий при дорожно-транспортном происшествии|0|п. 3.1 Остановка и аварийка^Немедленно остановиться, включить аварийную сигнализацию и выставить знак~п. 3.2 Сохранение следов^Запрет перемещения предметов и авто до фиксации обстоятельств~п. 3.3 Пострадавшие лица^Оказание первой помощи, вызов скорой помощи и экипажа ГИБДД~п. 3.6 Оставление места ДТП^Категорический запрет оставления места происшествия (ст. 48 КоАП)~п. 3.7 Алкоголь после ДТП^Запрет употребления спиртного и веществ до освидетельствования
+ПДД РО|Пункт 4. Применение специальных сигналов (мигалки и сирена)|Правила использования маячков и порядок предоставления приоритета|0|п. 4.1 Маячки синий/красный^Право отступать от правил только при одновременной сирене и маячках~п. 4.3 Обязанность уступить дорогу^Водители обязаны уступить дорогу спецтранспорту с включенной сиреной~п. 4.5 Желтые и оранжевые маячки^Преимущества не дают; используются для эвакуаторов и дорожных служб
+ПДД РО|Пункт 8. Скорость движения и безопасная дистанция|Скоростные ограничения на дорогах РО|0|п. 8.2 Лимиты скорости^Город 60 км/ч | Трасса 90 км/ч | Магистраль 110 км/ч | Буксир 50 км/ч~п. 8.4 Существенное превышение^Превышение более чем на 20 км/ч наказуемо по ст. 52.1 КоАП~п. 8.5 Запреты при езде^Запрет резкого торможения и беспричинной чрезмерно медленной езды
+ПДД РО|Пункт 9. Обгон и опережение|Правила безопасного опережения и выезда на встречную полосу|0|п. 9.2 Препятствие обгону^Запрет водителю обгоняемого автомобиля ускоряться и мешать обгону~п. 9.3 Места запрета обгона^Пешеходный переход, ж/д переезд, тоннель, мост, опасный поворот, знак
+ПДД РО|Пункт 17. Правила остановки и стоянки ТС|Места и порядок разрешенной парковки транспорта|0|п. 17.1 Правая сторона дороги^Остановка справа у края проезжей части либо на обочине параллельно бордюру~п. 17.4 Места запрета остановки^Пешеходный переход, переезд, тоннель, мост, перекресток, остановка маршруток~п. 17.6 Эвакуация ТС^Перемещение ТС на штрафстоянку при создании существенной помехи
     )
     LoadData(pd1)
-
-    pd2 =
-    (
-ПДД РО|Пункт 5.1 - 5.4. Значения сигналов светофора (зеленый, желтый, красный)|Остановка перед стоп-линией на запрещающий сигнал светофора|0
-ПДД РО|Пункт 5.5 - 5.6. Сигналы регулировщика и их приоритет над светофором и знаками|Регулировщик имеет высший приоритет на участке движения|0
-ПДД РО|Пункт 6.1 - 6.6. Начало движения, маневрирование, поворотники|Заблаговременная подача сигналов; занять крайнее положение на проезжей части|0
-ПДД РО|Пункт 6.7. Места запрета разворота ТС|Пешеходные переходы, тоннели, мосты, эстакады, ж/д переезды, видимость менее 100 м|0
-ПДД РО|Пункт 6.8. Движение задним ходом и места запрета|Запрещено на перекрестках, переходах, ж/д путях, мостах, автомагистралях|0
-ПДД РО|Пункт 7.1 - 7.3. Расположение ТС на дороге и запрет встречной полосы|Движение по правой стороне; соблюдение полос движения|0
-ПДД РО|Пункт 7.4. Запрет движения по обочине, разделительной полосе, тротуарам|Штрафы по статье 60 КоАП РО|0
-ПДД РО|Пункт 7.5 - 7.6. Движение тихоходного транспорта|Обязан двигаться по крайней правой полосе|0
-ПДД РО|Пункт 8.1. Выбор безопасной скорости движения|С учетом дорожного покрытия, видимости, погоды и груза|0
-ПДД РО|Пункт 8.2. Лимиты скорости: Город 60 | Трасса 90 | Магистраль 110 | Буксир 50|Базовые скоростные режимы в РО|0
-ПДД РО|Пункт 8.4. Существенное превышение скорости (более чем на 20 км/ч)|Ответственность по статье 52.1 КоАП РО|0
-ПДД РО|Пункт 8.5. Запреты при выборе скорости|Запрет резких торможений и беспричинного создания помех медленной ездой|0
-ПДД РО|Пункт 9.1 - 9.2. Правила обгона и запрет препятствования обгону|Запрещено ускоряться водителю обгоняемого автомобиля|0
-ПДД РО|Пункт 9.3. Места запрета обгона с выездом на встречную полосу|Пешеходный переход, ж/д переезд, тоннель, мост, подъем, знак «Обгон запрещен»|0
-ПДД РО|Пункт 9.4. Опережение попутного транспорта без выезда на встречную полосу|Разрешено при обеспечении полной безопасности маневра|0
-ПДД РО|Пункт 10.1 - 10.4. Общие правила приоритета и преимущество маршрутных ТС|Уступи дорогу пешеходам при повороте и автобусу от остановки|0
-ПДД РО|Пункт 11.1 - 11.3. Проезд регулируемых перекрестков и запрет выезда в затор|Запрещено выезжать на перекресток при образовавшейся пробке|0
-ПДД РО|Пункт 11.4 - 11.6. Проезд нерегулируемых перекрестков (главная дорога, помеха справа)|Уступить транспорту на главной дороге; на равнозначных — помеха справа|0
-ПДД РО|Пункт 12.1 - 12.5. Обязанности пешеходов при движении и спецсигналах|Переход по пешеходному переходу; освободить проезжую часть при сирене|0
-ПДД РО|Пункт 13.1 - 13.4. Обязанности водителей перед пешеходами|Пропуск пешеходов на переходах; запрет обгона на пешеходном переходе|0
-ПДД РО|Пункт 14.1 - 14.5. Правила для велосипедистов и пассажиров ТС|Спешивание велосипедистов на переходах; посадка со стороны тротуара|0
-ПДД РО|Пункт 15.1 - 15.4. Движение через железнодорожные переезды|Запрет выезда на закрытый шлагбаум; запрет разворота, стоянки, обгона|0
-ПДД РО|Пункт 16.1 - 16.2. Движение по автомагистралям|Запрет движения пешеходов, мопедов, заднего хода, разворота в разделительную|0
-ПДД РО|Пункт 17.1 - 17.3. Правила остановки и стоянки ТС|Остановка справа у края дороги параллельно бордюру в один ряд|0
-ПДД РО|Пункт 17.4 - 17.5. Места, где остановка и стоянка категорически запрещены|Пешеходные переходы, мосты, тоннели, перекрестки, остановки, тротуары|0
-ПДД РО|Пункт 17.6. Задержание и эвакуация транспортного средства|При создании существенной помехи движению по КоАП РО|0
-ПДД РО|Пункт 18.1 - 18.3. Включение внешних световых приборов и фар|Ближний свет в темное время суток; переключение на ближний при разъезде|0
-ПДД РО|Пункт 19.1 - 19.3. Порядок использования звукового сигнала|Разрешен только для предотвращения ДТП либо обгона вне города|0
-ПДД РО|Пункт 20.1 - 20.4. Правила буксировки механических ТС|Скорость буксировки не более 50 км/ч; включенная аварийная сигнализация|0
-ПДД РО|Пункт 21.1 - 21.4. Правила перевозки пассажиров и грузов|Груз не должен закрывать обзор, номера, фары и угрожать падением|0
-ПДД РО|Пункт 22.1 - 22.5. Техническое состояние ТС и допуск к движению|Запрет езды при неисправности тормозов, руля или фар; гос. номера обязательны|0
-ПДД РО|Пункт 23.1 - 23.4. Дорожные знаки (STOP, Уступи дорогу, Ограничение скорости)|Обязательны к соблюдению всеми водителями|0
-ПДД РО|Пункт 24.1 - 24.9. Дорожная разметка (сплошная, двойная сплошная, стоп-линия)|Запрет пересечения сплошной линии разметки|0
-ПДД РО|Пункт 25.1 - 25.5. Заключительные положения и вступление ПДД в силу|Полномочия сотрудников ГИБДД; ответственность по КоАП и УК РО|0
-    )
-    LoadData(pd2)
 
     pl1 =
     (
 ФЗ О Полиции|Статья 1. Полиция РО в системе МВД РО|Защита жизни, здоровья, прав, свобод, борьба с преступностью и охрана порядка|0
-ФЗ О Полиции|Статья 2. Правовая основа деятельности полиции|Конституция РО, федеральные законы и кодексы; запрет произвольных ограничений|0
-ФЗ О Полиции|Статья 3. Основные задачи полиции (12 направлений)|Пресечение правонарушений, задержание, розыск, помощь гражданам, упрощенный порядок|0
-ФЗ О Полиции|Статья 4. Основные направления деятельности полиции|Патрульно-постовая, оперативная, розыскная, конвойная и административная деятельность|0
-ФЗ О Полиции|Статья 5. Территориальность деятельности полиции|Полномочия на всей территории РО; пресечение правонарушений вне своей зоны|0
-ФЗ О Полиции|Статья 6. Пределы полицейской компетенции|Только для законной цели и соразмерно; запрет вмешательства в частную жизнь|0
+ФЗ О Полиции|Статья 3. Основные задачи полиции|12 основных направлений служебной деятельности полиции|0
 ФЗ О Полиции|Статья 7. Государственная инспекция безопасности дорожного движения (ГИБДД)|Специализированная служба в области безопасности движения МВД|0
-ФЗ О Полиции|Статья 8. Внутренние акты полиции|Приказы и регламенты МВД не могут уменьшать объем прав граждан|0
-ФЗ О Полиции|Статья 9. Принцип законности|Отказ от исполнения заведомо незаконного приказа; ссылка на приказ не освобождает|0
-ФЗ О Полиции|Статья 10. Соблюдение и уважение прав человека|Запрет пыток, унижения достоинства и применения силы в качестве наказания|0
-ФЗ О Полиции|Статья 11. Необходимость и соразмерность мер принуждения|Выбор мер с меньшим причинением вреда; запрет избыточных мер ради удобства|0
-ФЗ О Полиции|Статья 12. Принцип беспристрастности|Защита прав независимо от расы, национальности, пола, должности; конфликт интересов|0
-ФЗ О Полиции|Статья 13. Открытость и информирование|Деятельность открыта; соблюдение тайны следствия и государственной тайны|0
-ФЗ О Полиции|Статья 14. Взаимодействие и взаимопомощь ведомств|Сотрудничество с Прокуратурой, СК, ФСБ, Судами и Армией|0
-ФЗ О Полиции|Статья 15. Персональная ответственность сотрудника полиции|Сотрудник лично отвечает за законность своих требований и мер силы|0
-ФЗ О Полиции|Статья 16. Прием и регистрация заявлений о правонарушениях|Обязательная регистрация вызовов; срок рассмотрения не более 48 часов|0
-ФЗ О Полиции|Статья 17. Оказание помощи гражданам|Первая помощь пострадавшим, вызов врачей, защита беспомощных лиц|0
-ФЗ О Полиции|Статья 18. Предупреждение и пресечение правонарушений|Законное требование прекратить нарушение; официальное предупреждение|0
-ФЗ О Полиции|Статья 19. Охрана общественного порядка|Патрулирование улиц, охрана публичных мест и массовых мероприятий|0
-ФЗ О Полиции|Статья 20. Охрана места происшествия и сохранение доказательств|Оцепление, ограничение прохода посторонних, запрет перемещения предметов|0
-ФЗ О Полиции|Статья 21. Розыск лиц и ориентировки|Поиск разыскиваемых, проверка ориентировок и законное задержание|0
-ФЗ О Полиции|Статья 22. Исполнение обязательных судебных и прокурорских актов|Исполнение решений суда, постановлений о санкции ареста, приводов|0
-ФЗ О Полиции|Статья 23. Производство по делам об административных правонарушениях|Возбуждение, составление протоколов и рассмотрение дел по КоАП|0
-ФЗ О Полиции|Статья 24. Упрощенное разрешение уголовного материала|Разрешение дел общей подследственности на месте без письменного производства|0
-ФЗ О Полиции|Статья 25. Передача уголовных материалов по подследственности в СК и ФСБ|Неотложные действия на месте и обязательная передача дела в СК/ФСБ|0
-    )
-    LoadData(pl1)
-
-    pl2 =
-    (
-ФЗ О Полиции|Статья 26. Обеспечение прав задержанного|Разъяснение прав, вызов адвоката, обязательное участие прокурора для служащих|0
-ФЗ О Полиции|Статья 27. Безопасность задержанного и контроль состояния|Оказание медпомощи; постоянный контроль при применении наручников|0
-ФЗ О Полиции|Статья 28. Сохранность изъятых доказательств и имущества|Запрет присвоения, подмены или использования изъятого в личных целях|0
-ФЗ О Полиции|Статья 29. Обязательная фото-, аудио- и видеофиксация|Ведение и хранение записей процессуальных действий по закону|0
-ФЗ О Полиции|Статья 30. Порядок представления сотрудника полиции гражданам|Назвать звание, фамилию, должность и предъявить служебное удостоверение|0
-ФЗ О Полиции|Статья 31. Действия сотрудника вне времени несения службы|Вызов дежурных нарядов и предотвращение тяжких последствий при ЧП|0
+ФЗ О Полиции|Статья 30. Представление сотрудника полиции|Обязанность назвать звание, фамилию и предъявить служебное удостоверение|0
 ФЗ О Полиции|Статья 32. Законное требование сотрудника полиции|Обязательно для граждан; конкретное, этичное, в приказном наклонении|0
-ФЗ О Полиции|Статья 33. Проверка документов и установление личности гражданам|Основания: подозрение, розыск, ориентировка, охраняемая территория|0
-ФЗ О Полиции|Статья 34. Использование государственных информационных систем|Строго по службе; запрет слива баз данных и пробива в личных целях|0
-ФЗ О Полиции|Статья 35. Вызов граждан и получение объяснений|Приглашение для опроса; принудительный привод только по постановлению|0
-ФЗ О Полиции|Статья 36. Доставление и задержание лиц|Ограничение свободы строго по закону; задержание не является наказанием|0
-ФЗ О Полиции|Статья 37. Личный обыск, досмотр и изъятие вещей|Первичный обыск при задержании на оружие, запрещенные вещества и документы|0
-ФЗ О Полиции|Статья 38. Обыск транспортного средства без судебного ордера|При погоне, ориентировке, преступлении или запрещенных вещах у водителя|0
-ФЗ О Полиции|Статья 39. Проникновение в жилище и частные помещения без ордера|Спасение жизни, преследование по горячим следам, ликвидация ЧС|0
-ФЗ О Полиции|Статья 40. Доступ на государственные и режимные объекты|По служебному удостоверению для следственных действий и задержаний|0
-ФЗ О Полиции|Статья 41. Оцепление участков местности и ограничение доступа|Места преступлений, спецоперации, массовые беспорядки, угрозы взрыва|0
-ФЗ О Полиции|Статья 42. Осмотр и обследование территорий|Осмотр общественных мест, открытой местности и мест происшествий|0
-ФЗ О Полиции|Статья 43. Оперативно-розыскная деятельность (ОРД)|Наблюдение, внедрение; ограничение прав граждан только через суд|0
-ФЗ О Полиции|Статья 44. Использование транспорта граждан в неотложных случаях|С согласия владельца; без согласия — только при прямой угрозе жизни|0
-ФЗ О Полиции|Статья 45. Исполнение привода, конвоирование и охрана|Доставление в суд/следствие, конвой в ИВС, охрана мест содержания|0
-ФЗ О Полиции|Статья 46. Защита потерпевших, свидетелей и иных лиц|Применение мер государственной безопасности при угрозах жизни|0
-ФЗ О Полиции|Статья 47. Общие условия применения физической силы|Только для законной цели; прекращение после устранения угрозы|0
-ФЗ О Полиции|Статья 48. Основания применения физической силы и приемов|Пресечение нападения, сопротивления, задержание, пресечение побега|0
-ФЗ О Полиции|Статья 49. Специальные средства (дубинки, тазеры, барьеры)|Отражение нападения, задержание опасных лиц, пресечение беспорядков|0
-ФЗ О Полиции|Статья 50. Основания применения наручников|Задержание, арест, конвой, риск нападения, побега или уничтожения улик|0
-    )
-    LoadData(pl2)
-
-    pl3 =
-    (
-ФЗ О Полиции|Статья 51. Основания применения огнестрельного оружия|Крайняя мера при угрозе жизни; запрет предупредительных выстрелов|0
-ФЗ О Полиции|Статья 52. Предупреждение о намерении применить силу/оружие|Предупреждение обязательно (исключение: внезапное нападение/угроза жизни)|0
-ФЗ О Полиции|Статья 53. Ограничения при применении силы|Запрет применения избыточной силы к лицу, прекратившему сопротивление|0
-ФЗ О Полиции|Статья 54. Действия сотрудника полиции после применения силы|Оказание первой помощи, доклад руководству, передача видео в прокуратуру|0
-ФЗ О Полиции|Статья 55. Преследование транспортных средств (погоня)|Преследование скрывающихся нарушителей с учетом безопасности граждан|0
-ФЗ О Полиции|Статья 56. Система органов полиции МВД РО|ГУ МВД, территориальные отделы, уголовный розыск, ППС, ГИБДД|0
-ФЗ О Полиции|Статья 57. Министр внутренних дел РО|Общее государственное и организационное руководство ведомством|0
-ФЗ О Полиции|Статья 58. Руководитель Главного управления МВД РО (Глава МВД)|Оперативное управление полицией, патрулированием, кадрами и спецоперациями|0
-ФЗ О Полиции|Статья 59. Внутренняя структура подразделений полиции|Управления, отделы, батальоны; объем прав определяется законами|0
-ФЗ О Полиции|Статья 60. Служебные поручения и распределение материалов|Распределение вызовов и ориентировок между дежурными сменами|0
-ФЗ О Полиции|Статья 61. Совместные группы и специальные межведомственные операции|Взаимодействие при рейдах и массовых мероприятиях|0
-ФЗ О Полиции|Статья 62. Правовой статус сотрудника полиции|Сотрудник при исполнении — официальный представитель государственной власти|0
-ФЗ О Полиции|Статья 63. Служебное удостоверение и нагрудный жетон|Обязательное ношение нагрудного знака на форме для визуального контроля|0
-ФЗ О Полиции|Статья 64. Специальные звания полиции|Звание определяет субординацию, но не отменяет должностную цепь подчинения|0
-ФЗ О Полиции|Статья 65. Основные обязанности сотрудника полиции|Соблюдать Конституцию, приказы, права граждан, видеофиксацию, тайну|0
-ФЗ О Полиции|Статья 66. Запреты и ограничения для сотрудника полиции|Запрет взяток, покровительства, использования оружия и баз в личных целях|0
-ФЗ О Полиции|Статья 67. Приказ руководителя и отказ от незаконного приказа|Отказ от заведомо незаконного приказа не является дисциплинарным проступком|0
-ФЗ О Полиции|Статья 68. Государственная защита сотрудника полиции и его близких|Уголовная защита от угроз и насилия в связи со службой|0
-ФЗ О Полиции|Статья 69. Дисциплинарная ответственность сотрудников|Замечание, выговор, строгий выговор, понижение в должности, увольнение|0
-ФЗ О Полиции|Статья 70. Ответственность за незаконные действия и превышение полномочий|Дисциплинарная, гражданская и уголовная ответственность сотрудника|0
-ФЗ О Полиции|Статья 71. Взаимодействие с Прокуратурой РО (надзор)|Предоставление видеозаписей по запросу; исполнение санкций прокурора|0
-ФЗ О Полиции|Статья 72. Взаимодействие со Следственным комитетом (СК РО)|Исполнение поручений следователя по розыску, приводам, оцеплениям|0
-ФЗ О Полиции|Статья 73. Взаимодействие с Федеральной службой безопасности (ФСБ)|Передача материалов по исключительной подследственности ФСБ|0
-ФЗ О Полиции|Статья 74. Взаимодействие с судами|Исполнение приводов, охрана заседаний, обязательность судебных решений|0
-ФЗ О Полиции|Статья 75. Взаимодействие с Правительством РО|Организационное обеспечение; запрет незаконного вмешательства в следствие|0
-ФЗ О Полиции|Статья 76. Ведомственный контроль руководства полиции|Служебные проверки, контроль дисциплины и отмена незаконных актов|0
-ФЗ О Полиции|Статья 77. Порядок обжалования действий и решений полиции|Жалоба руководству, в прокуратуру или суд; предоставление видеофиксации|0
-    )
-    LoadData(pl3)
-
-    us1 =
-    (
-Устав ГИБДД|Статья 1. Государственная инспекция безопасности дорожного движения|Орган исполнительной власти в сфере безопасности движения и контроля порядка|0
-Устав ГИБДД|Статья 2. Роль и обязательность Устава ГИБДД|Обязателен для всех сотрудников независимо от звания; незнание не освобождает|0
-Устав ГИБДД|Статья 3. Основные принципы службы в ГИБДД|Законность, единоначалие, дисциплина, субординация и авторитет службы|0
-Устав ГИБДД|Статья 4. Порядок изменения настоящего Устава|Вносятся руководством ГИБДД с обязательным ознакомлением личного состава|0
-Устав ГИБДД|Статья 5. Поступление на службу и зачисление в Академию|Отбор кандидатов; зачисление в Академию ГИБДД для первоначальной подготовки|0
-Устав ГИБДД|Статья 6. Академия ГИБДД (руководство ЦПП)|Обучение законам, уставу, регламентам; куратор — Центр подготовки персонала|0
-Устав ГИБДД|Статья 7. Срок прохождения Академии (3 дня, 2 попытки сдачи)|Несдача = отчисление и внесение в Чёрный список на 14 календарных дней|0
-Устав ГИБДД|Статья 8. Структурные подразделения (ДПС, ЦПП, УСБ, СБ)|4 специализированных подразделения в подчинении руководства ГИБДД|0
-Устав ГИБДД|Статья 9. Руководство ГИБДД (Генерал, Генерал-полковник, Генерал-лейтенант)|Командиры несут персональную ответственность за дисциплину личного состава|0
-Устав ГИБДД|Статья 10. 16 специальных званий ГИБДД (Рядовой — Генерал)|Иерархическая лестница званий дорожной инспекции|0
+ФЗ О Полиции|Статья 33. Проверка документов и установление личности|Законные основания для требования документов, удостоверяющих личность|0|п. 1 Подозрение в правонарушении^Наличие достаточных оснований подозревать лицо в деянии~п. 2 Розыск и ориентировка^Нахождение в розыске либо совпадение с имеющейся ориентировкой~п. 3 Процессуальные действия^Необходимость установить личность задержанного, потерпевшего, свидетеля~п. 4 Пропускной режим^Попытка прохода на охраняемую территорию с установленным режимом
+ФЗ О Полиции|Статья 38. Обыск транспортного средства|Основания обыска ТС сотрудниками полиции без судебного ордера|0
+ФЗ О Полиции|Статья 48. Применение физической силы|Случаи применения боевых приемов и физического воздействия|0|п. 1 Пресечение нападения^Отражение нападения на граждан или сотрудников полиции~п. 2 Сопротивление^Преодоление физического сопротивления нарушителя~п. 3 Задержание и побег^Задержание скрывающегося лица и предотвращение побега
+ФЗ О Полиции|Статья 50. Применение наручников и средств ограничения подвижности|Задержание, арест, конвой, риск нападения, побега или уничтожения улик|0
+ФЗ О Полиции|Статья 51. Применение огнестрельного оружия|Крайняя мера при угрозе жизни; категорический запрет предупредительных выстрелов|0
+ФЗ О Полиции|Статья 63. Служебное удостоверение и нагрудный знак|Обязательное ношение нагрудного знака на форме для визуального контроля|0
+Устав ГИБДД|Статья 1. Государственная инспекция безопасности дорожного движения|Государственный орган исполнительной власти в сфере безопасности движения|0
+Устав ГИБДД|Статья 8. Структурные подразделения ГИБДД|4 специализированных подразделения: ДПС, ЦПП, УСБ, Спецбатальон (СБ)|0|ДПС^Дорожно-патрульная служба: патрули, посты, оформление ДТП, погони~ЦПП^Центр подготовки персонала: Академия, обучение, прием экзаменов~УСБ^Управление собственной безопасности: надзор, дисциплина, проверки~СБ^Специальный батальон: силовая поддержка, сопровождение, спецрейды
 Устав ГИБДД|Статья 11. Общие обязанности сотрудника ГИБДД|Соблюдать законы, субординацию, беречь служебное ТС, оружие и спецсредства|0
 Устав ГИБДД|Статья 11.6. Обязанность прибытия на построение личного состава|Неявка в строй или самовольный уход без разрешения влечет взыскание|0
-Устав ГИБДД|Статья 12. Права сотрудника ГИБДД|Получение экипировки, подача рапортов, защита прав, обжалование наказаний|0
-Устав ГИБДД|Статья 13. Исполнение законных распоряжений руководства|Обязательно; заведомо незаконное распоряжение исполнению не подлежит|0
-Устав ГИБДД|Статья 14. Понятие и обязательность служебной субординации|Основана на званиях, должностях и единоначалии; нарушение наказуемо|0
-Устав ГИБДД|Статья 15. Порядок служебного обращения («Товарищ [звание]»)|Официальная форма; общение с гражданами на «Вы» в вежливой форме|0
-Устав ГИБДД|Статья 16. Правила служебного общения и профессиональная этика|Запрет панибратства, пренебрежительного тона, мата и оскорблений|0
-Устав ГИБДД|Статья 17. Основные запреты сотрудникам (взятки, прогулы, алкоголь)|Категорический запрет коррупции, обмана руководства и прогула службы|0
+Устав ГИБДД|Статья 15. Порядок служебного обращения|Официальная форма: «Товарищ [звание]»; общение с гражданами строго на «Вы»|0
+Устав ГИБДД|Статья 17. Основные запреты сотрудникам|Запрет взяток, покровительства, алкоголя, прогулов и обмана руководства|0
+Устав ГИБДД|Статья 19. Рабочее время сотрудников|Дневная смена: 10:00 - 23:00 | Ночная смена: 23:00 - 07:00|0
+Устав ГИБДД|Статья 26. Виды дисциплинарных взысканий|Строгий выговор (система 0/3), переаттестация, увольнение из органов|0
     )
-    LoadData(us1)
-
-    us2 =
-    (
-Устав ГИБДД|Статья 18. Правила использования служебной радиосвязи|Краткость, запрет личных бесед; приоритет срочных сообщений и погонь|0
-Устав ГИБДД|Статья 19. Рабочий график сотрудников (с 10:00 до 23:00)|Перерывы суммарно не более 1 часа в течение служебного дня|0
-Устав ГИБДД|Статья 20. Порядок предоставления отпуска (до 7 дней в месяц)|Подается рапорт после Академии; продление только по согласованию|0
-Устав ГИБДД|Статья 21. Дорожно-патрульная служба (ДПС ГИБДД)|Патрулирование, посты, проверка документов, оформление ДТП, погони|0
-Устав ГИБДД|Статья 22. Центр подготовки персонала (ЦПП ГИБДД)|Набор личного состава, собеседования, обучение курсантов Академии|0
-Устав ГИБДД|Статья 23. Управление собственной безопасности (УСБ ГИБДД)|Внутренний надзор, досмотр сотрудников, проверки на опьянение, взыскания|0
-Устав ГИБДД|Статья 24. Специальный батальон (СБ ГИБДД)|Силовая поддержка, сопровождение колонн, опасные рейды и задержания|0
-Устав ГИБДД|Статья 25. Понятие дисциплинарного проступка|Виновное нарушение устава, законов или законного приказа руководства|0
-Устав ГИБДД|Статья 26. Виды дисциплинарных взысканий|Устный выговор, строгий выговор, переаттестация, увольнение|0
-Устав ГИБДД|Статья 27. Устный выговор (система учета 0/2)|Применяется за легкие проступки; 2 устных выговора = 1 строгий выговор|0
-Устав ГИБДД|Статья 28. Строгий выговор (система учета 0/2)|За грубые нарушения; 2 строгих = переаттестация либо увольнение из органов|0
-Устав ГИБДД|Статья 29. Проведение переаттестации сотрудника|Проверка профпригодности при 2 выговорах; несдача = увольнение|0
-Устав ГИБДД|Статья 30. Порядок снятия дисциплинарных взысканий (служебная отработка)|Посты, патрули, нормативы; строгий запрет откупа деньгами или вещами|0
-Устав ГИБДД|Статья 31. Обжалование дисциплинарного взыскания|Письменная жалоба в УСБ или руководству с изложением доводов|0
-Устав ГИБДД|Статья 32. Повышение в звании и согласование руководящих постов с УСБ|Подача отчетов; проверка благонадежности кандидатов в командиры через УСБ|0
-Устав ГИБДД|Статья 33. Прекращение службы и увольнение из ГИБДД|Сдача имущества, формы, оружия и незавершенных материалов|0
-Устав ГИБДД|Статья 34. Чёрный список ГИБДД|Внесение на 14 дней за провал Академии; бессрочно — за взятки и слив инфо|0
-Устав ГИБДД|Статья 35. Вступление Устава в законную силу|Утверждено Генералом ГИБДД Базановым Д.А., г. Москва|0
-    )
-    LoadData(us2)
+    LoadData(pl1)
 }
 
 LoadData(str) {
@@ -2086,8 +1854,25 @@ LoadData(str) {
             continue
         p := StrSplit(line, "|")
         if (p.Length() >= 3) {
-            pop := (p.Length() >= 4) ? p[4] : 0
-            ArticleDB.Push({"Category": p[1], "Title": p[2], "Punish": p[3], "IsPop": pop})
+            pop := (p.Length() >= 4 && p[4] != "") ? p[4] + 0 : 0
+            parts := []
+            if (p.Length() >= 5 && Trim(p[5]) != "") {
+                Loop, Parse, % p[5], "~"
+                {
+                    partStr := Trim(A_LoopField)
+                    if (partStr == "")
+                        continue
+                    pp := StrSplit(partStr, "^")
+                    if (pp.Length() >= 2)
+                        parts.Push({"Title": pp[1], "Punish": pp[2]})
+                    else if (pp.Length() == 1)
+                        parts.Push({"Title": pp[1], "Punish": ""})
+                }
+            }
+            ArticleDB.Push({"Category": p[1], "Title": p[2], "Punish": p[3], "IsPop": pop, "Expanded": false, "Parts": parts})
         }
     }
 }
+
+
+
