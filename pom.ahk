@@ -30,7 +30,7 @@ if not A_IsAdmin
     ExitApp
 }
 
-global CurrentVersion := "3.9"
+global CurrentVersion := "4.1"
 global RepoURL := "https://github.com/Makson3322/russiaonline_gibdd"
 global UpdateAvailable := false
 global LatestVersion := ""
@@ -151,7 +151,7 @@ ApplyRoundedCorners(hwnd, w := 0, h := 0, r := 18) {
 CopyToClip(strText, notifyMsg) {
     Clipboard := strText
     SoundPlay, *-1
-    TrayTip, ДПС ГИБДД [V3.9], %notifyMsg%, 2, 1
+    TrayTip, ДПС ГИБДД [V4.1], %notifyMsg%, 2, 1
 }
 
 CheckUpdateFast:
@@ -351,7 +351,7 @@ ShowSettingsGui(savedKey) {
     Gui, Settings:Font, s16 c%CLR_TITLE% Bold, Segoe UI
     Gui, Settings:Add, Text, x0 y18 w%wW% Center, ПАМЯТКА • ДИМА ЗЛАЯ КАКА
     Gui, Settings:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
-    Gui, Settings:Add, Text, x0 y48 w%wW% Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V3.9
+    Gui, Settings:Add, Text, x0 y48 w%wW% Center, КУТУЗОВСКИЙ  •  РОССИЯ ОНЛАЙН  •  V4.1
     Gui, Settings:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Settings:Add, Button, x30 y74 w400 h36 vUpdateSettingsBtn gOpenRepoUrl +Hidden, ВЫШЛО ОБНОВЛЕНИЕ - СКАЧАТЬ
     Gui, Settings:Font, s9 c%CLR_TEXT% Normal, Segoe UI
@@ -417,7 +417,7 @@ SaveAndStart:
     IniWrite, %CurrentHotkey%, %IniFile%, Settings, OpenKey
     IniWrite, %CurrentTheme%, %IniFile%, Settings, Theme
     Hotkey, %CurrentHotkey%, ToggleSelectionMenu, On
-    TrayTip, ДПС ГИБДД V3.9, Настройки сохранены!`nКлавиша: [%CurrentHotkey%] | Тема: %CurrentTheme%, 3, 1
+    TrayTip, ДПС ГИБДД V4.1, Настройки сохранены!`nКлавиша: [%CurrentHotkey%] | Тема: %CurrentTheme%, 3, 1
     BuildOverlay()
     BuildSelectorGui()
     BuildTimerGui()
@@ -439,7 +439,7 @@ BuildSelectorGui() {
     Gui, Selector:Font, s16 c%CLR_TITLE% Bold, Segoe UI
     Gui, Selector:Add, Text, x0 y18 w%wW% Center, СИСТЕМА ДПС ГИБДД
     Gui, Selector:Font, s9 c%CLR_ACCENT2% Bold, Segoe UI
-    Gui, Selector:Add, Text, x0 y48 w%wW% Center, БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА  •  V3.9
+    Gui, Selector:Add, Text, x0 y48 w%wW% Center, БАЗА ДАННЫХ ЗАКОНОДАТЕЛЬСТВА  •  V4.1
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
     Gui, Selector:Add, Button, x25 y76 w380 h34 vUpdateSelectorBtn gOpenRepoUrl +Hidden, ДОСТУПНО ОБНОВЛЕНИЕ
     Gui, Selector:Font, s10 cFFFFFF Bold, Segoe UI
@@ -591,14 +591,26 @@ return
 NumpadEnter::
     Gosub, HandleEnterKey
 return
-Space::
-    Gosub, ToggleExpandSelected
+$Space::
+    GuiControlGet, focusedCtrl, Overlay:FocusV
+    if (focusedCtrl = "SearchTerm")
+        Send, {Space}
+    else
+        Gosub, ToggleExpandSelected
 return
-Right::
-    Gosub, ExpandSelected
+$Right::
+    GuiControlGet, focusedCtrl, Overlay:FocusV
+    if (focusedCtrl = "SearchTerm")
+        Send, {Right}
+    else
+        Gosub, ExpandSelected
 return
-Left::
-    Gosub, CollapseSelected
+$Left::
+    GuiControlGet, focusedCtrl, Overlay:FocusV
+    if (focusedCtrl = "SearchTerm")
+        Send, {Left}
+    else
+        Gosub, CollapseSelected
 return
 Down::
     GuiControlGet, focusedCtrl, Overlay:FocusV
@@ -658,7 +670,7 @@ BuildOverlay() {
     Gui, Overlay:Font, s15 c%CLR_TITLE% Bold, Segoe UI
     Gui, Overlay:Add, Text, x25 y18 w360, ДПС ГИБДД КУТУЗОВСКИЙ
     Gui, Overlay:Font, s8 c%CLR_SUCCESS% Bold, Segoe UI
-    Gui, Overlay:Add, Text, x390 y24 w70, [ V3.9 ]
+    Gui, Overlay:Add, Text, x390 y24 w70, [ V4.1 ]
     Gui, Overlay:Font, s9 cFFFFFF Bold, Segoe UI
     Gui, Overlay:Add, Button, x470 y16 w220 h30 vUpdateNoticeBtn gOpenRepoUrl +Hidden, ОБНОВИТЬ СКРИПТ
     Gui, Overlay:Font, s9 c%CLR_MUTED% Normal, Segoe UI
@@ -1392,7 +1404,7 @@ InitDatabase() {
 КоАП РО|Статья 14.8. Встречка|2-7к (Штраф 2.000 – 7.000 руб.)|1
 КоАП РО|Статья 14.9. Правила стоянки и остановки|1-5к (Штраф 1.000 – 5.000 руб.)|1
 КоАП РО|Статья 14.18.1. По обочине, разделительной полосе, автобусной|0.5-2к (Штраф 500 – 2.000 руб.)|1
-КоАП РО|Статья 14.18.2. По тротуару, пешеходной, велосипедной|1-4к (Штраф 1.000 – 4.000 руб.)|1
+КоАП РО|Статья 14.18.2. По тротуару, пешеходной, велосипедной|1-4к (Штраф 1.000 – 4.100 руб.)|1
 КоАП РО|Статья 14.25.1. Несоблюдение дорожного занка, разметки|0.5-3к (Штраф 500 – 3.000 руб.)|1
 КоАП РО|Статья 14.16.1. Нарушение правил разворота,поворота|0.5-2к (Штраф 500 – 2.000 руб.)|1
 КоАП РО|Статья 14.25.2. 14.25.1 только повлекшее ДТП|3-7к (Штраф 3.000 – 7.000 руб.)|1
@@ -1416,7 +1428,7 @@ InitDatabase() {
 КоАП РО|Статья 14.17.1. Непредоставление преимущества на перекрестке|5-15к (Штраф 5.000 – 15.000 руб.)|1
 КоАП РО|Статья 14.19.1. Обгон или опережение без обеспечения безопасности маневра|2-6к (Штраф 2.000 – 6.000 руб.)|1
 КоАП РО|Статья 14.19.2. Обгон в запрещённых местах|3-7к (Штраф 3.000 – 7.000 руб.)|1
-КоАП РО|Статья 14.21.1. На автомагистрале - остановка,движение задним ходом,разворот|1-4к (Штраф 1.000 – 4.000 руб.)|1
+КоАП РО|Статья 14.21.1. На автомагистрале - остановка,движение задним ходом,разворот|1-4к (Штраф 1.000 – 4.100 руб.)|1
 КоАП РО|Статья 14.22.2. Использование маячков и спец сигнала без необходимости|30-70к (Штраф 30.000 – 70.000 руб.)|1
 КоАП РО|Статья 14.23. Нарушение свет и звук|1-3к (Штраф 1.000 – 3.000 руб.)|1
 КоАП РО|Статья 14.28.1. Воспрепятствование движению колонны|10-25к (Штраф 10.000 – 25.000 руб.)|1
