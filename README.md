@@ -2,7 +2,7 @@
 
 > **Скачать последнюю версию — v5.0.4**
 >
-> 📥 **[⬇️ Скачать dalvvhelp v5.0.4]([https://disk.yandex.ru/d/hMQlZmfrG9NAdQ](https://disk.yandex.ru/d/c1uBHWjiwKK6sw))**
+> 📥 **[⬇️ Скачать dalvvhelp v5.0.4](https://disk.yandex.ru/d/c1uBHWjiwKK6sw)**
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## 📦 Установка
 
-1. Перейдите по ссылке: [Скачать dalvvhelp v5.0.4]([https://disk.yandex.ru/d/hMQlZmfrG9NAdQ](https://disk.yandex.ru/d/c1uBHWjiwKK6sw)).
+1. Перейдите по ссылке: [Скачать dalvvhelp v5.0.4](https://disk.yandex.ru/d/c1uBHWjiwKK6sw).
 2. Скачайте установщик.
 3. Запустите файл установки.
 4. Следуйте инструкциям установщика.
@@ -55,7 +55,7 @@
 
 ### **dalvvhelp v5.0.4**
 
-[**⬇️ Скачать с Яндекс Диска**]([https://disk.yandex.ru/d/hMQlZmfrG9NAdQ](https://disk.yandex.ru/d/c1uBHWjiwKK6sw))
+[**⬇️ Скачать с Яндекс Диска**](https://disk.yandex.ru/d/c1uBHWjiwKK6sw)
 
 ---
 
