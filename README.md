@@ -1,8 +1,8 @@
 # 🚀 dalvvhelp
 
-> **Скачать последнюю версию — v5.0.4**
+> **Последняя версия — v5.0.5**
 >
-> 📥 **[⬇️ Скачать dalvvhelp v5.0.4](https://disk.yandex.ru/d/c1uBHWjiwKK6sw)**
+> 📥 **[⬇️ Скачать dalvvhelp v5.0.5](https://github.com/Makson3322/russiaonline_gibdd/releases/download/v5.0.5/pom.ahk)**
 
 ---
 
@@ -22,26 +22,38 @@
 
 ## 📦 Установка
 
-1. Перейдите по ссылке: [Скачать dalvvhelp v5.0.4](https://disk.yandex.ru/d/c1uBHWjiwKK6sw).
-2. Скачайте установщик.
-3. Запустите файл установки.
-4. Следуйте инструкциям установщика.
-5. Запустите **dalvvhelp** через ярлык на рабочем столе или из меню «Пуск».
+1. Скачайте **AutoHotkey v1.1.37.02** — он необходим для запуска приложения.
+2. Запустите установщик AutoHotkey и завершите установку.
+3. Скачайте файл **dalvvhelp v5.0.5**.
+4. Запустите `pom.ahk`.
+5. Приложение готово к использованию.
 
-## 🛠️ Системные требования
+## 🧩 Зависимости и требования
+
+Для корректной работы приложения требуется:
 
 - **ОС:** Windows
 - **Архитектура:** x64
-- **Место на диске:** рекомендуется иметь не менее 1 ГБ свободного пространства
+- **Интерпретатор:** AutoHotkey v1.1.37.02
+- **Место на диске:** рекомендуется не менее 1 ГБ свободного пространства
+
+### 📥 Скачать необходимые компоненты
+
+- **[⬇️ dalvvhelp v5.0.5](https://github.com/Makson3322/russiaonline_gibdd/releases/download/v5.0.5/pom.ahk)**
+- **[⬇️ AutoHotkey v1.1.37.02](https://github.com/Makson3322/russiaonline_gibdd/releases/download/v5.0.5/AutoHotkey_1.1.37.02_setup.exe)**
+
+> ⚠️ Перед запуском `pom.ahk` обязательно установите AutoHotkey v1.1.37.02.
 
 ## 📋 Версия
 
 | Параметр | Значение |
 |---|---|
 | Название | dalvvhelp |
-| Текущая версия | `5.0.4` |
+| Текущая версия | `5.0.5` |
 | Платформа | Windows |
-| Тип распространения | Установщик |
+| Архитектура | x64 |
+| Интерпретатор | AutoHotkey v1.1.37.02 |
+| Тип распространения | AHK-скрипт |
 
 ## 🐛 Нашли ошибку?
 
@@ -53,9 +65,11 @@
 
 ## 📥 Скачать
 
-### **dalvvhelp v5.0.4**
+### **dalvvhelp v5.0.5**
 
-[**⬇️ Скачать с Яндекс Диска**](https://disk.yandex.ru/d/c1uBHWjiwKK6sw)
+[**⬇️ Скачать dalvvhelp**](https://github.com/Makson3322/russiaonline_gibdd/releases/download/v5.0.5/pom.ahk)
+
+[**⬇️ Скачать AutoHotkey v1.1.37.02**](https://github.com/Makson3322/russiaonline_gibdd/releases/download/v5.0.5/AutoHotkey_1.1.37.02_setup.exe)
 
 ---
 
